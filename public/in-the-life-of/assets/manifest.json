@@ -1,0 +1,115 @@
+{
+  "source": "studio-panorama-v3.blend",
+  "sourceObjects": {
+    "architecture": 590,
+    "furniture": 784,
+    "desk-details": 1897,
+    "services": 118
+  },
+  "meshes": {
+    "architecture": {
+      "vertices": 6880,
+      "triangles": 11716
+    },
+    "foliage-panels": {
+      "vertices": 240,
+      "triangles": 360
+    },
+    "window-portals": {
+      "vertices": 3692,
+      "triangles": 5532
+    },
+    "central-furniture": {
+      "vertices": 11760,
+      "triangles": 21940
+    },
+    "furniture": {
+      "vertices": 20800,
+      "triangles": 38380
+    },
+    "details-perimeter--1-1": {
+      "vertices": 5730,
+      "triangles": 11216
+    },
+    "details-perimeter-0-1": {
+      "vertices": 172,
+      "triangles": 276
+    },
+    "details-perimeter--1--2": {
+      "vertices": 5265,
+      "triangles": 9652
+    },
+    "details-perimeter-1--1": {
+      "vertices": 6538,
+      "triangles": 11634
+    },
+    "details-perimeter-1-0": {
+      "vertices": 6215,
+      "triangles": 11104
+    },
+    "details-perimeter--1-0": {
+      "vertices": 8080,
+      "triangles": 15544
+    },
+    "details-central": {
+      "vertices": 16285,
+      "triangles": 17784
+    },
+    "details-perimeter-1-1": {
+      "vertices": 4639,
+      "triangles": 7796
+    },
+    "details-perimeter--1--1": {
+      "vertices": 7153,
+      "triangles": 13552
+    },
+    "details-perimeter-1--2": {
+      "vertices": 5687,
+      "triangles": 10854
+    },
+    "details-perimeter-0--2": {
+      "vertices": 2673,
+      "triangles": 4728
+    },
+    "details-perimeter--2--2": {
+      "vertices": 1588,
+      "triangles": 2708
+    },
+    "details-perimeter--2-0": {
+      "vertices": 524,
+      "triangles": 994
+    },
+    "details-perimeter--2-1": {
+      "vertices": 1966,
+      "triangles": 3776
+    },
+    "details-perimeter--2--1": {
+      "vertices": 976,
+      "triangles": 1344
+    },
+    "services": {
+      "vertices": 2962,
+      "triangles": 5444
+    }
+  },
+  "bytes": 4131592,
+  "seconds": 6.31,
+  "camera": {
+    "position": [
+      0.159,
+      3.258,
+      0.284
+    ],
+    "up": [
+      -1,
+      0,
+      0
+    ],
+    "target": [
+      0.159,
+      0,
+      0.284
+    ],
+    "fov": 122
+  }
+}

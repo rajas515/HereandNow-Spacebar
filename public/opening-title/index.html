@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Take it to the grave — Opening title</title>
+<style>
+:root{color-scheme:dark;background:#21152d;color:#9a87b2;font-family:Arial,sans-serif}*{box-sizing:border-box}body{margin:0}grave-title{display:block;width:100%;height:100svh}header{position:fixed;top:28px;left:32px;font-size:10px;letter-spacing:.22em;text-transform:uppercase;pointer-events:none}footer{position:fixed;bottom:26px;left:32px;right:32px;display:flex;gap:22px;align-items:center;font-size:10px;letter-spacing:.12em}button{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:1px solid #685074;padding:10px 14px;cursor:pointer}button:hover{color:#ff008b;border-color:#ff008b}label{display:flex;gap:12px;align-items:center}input{accent-color:#f00085;width:130px}output{width:28px;font-variant-numeric:tabular-nums}.hint{margin-left:auto}body.clean header,body.clean footer{display:none}@media(max-width:600px){header{left:20px}footer{left:20px;right:20px;flex-wrap:wrap;gap:12px}.hint{display:none}}
+body{padding-right:280px}grave-title{width:100%}footer{right:312px;flex-wrap:wrap}.hint{margin-left:0}.settings{position:fixed;right:0;top:0;bottom:0;width:280px;background:#19131feF;border-left:1px solid #46334e;padding:28px 22px;overflow:auto;color:#c5b9d1;font-size:12px}.settings h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;margin:0 0 24px}.settings h3{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#8f7d9d;margin:26px 0 16px}.settings label{justify-content:space-between;margin:17px 0;gap:10px}.settings input[type=color]{width:48px;height:28px;padding:2px;border:1px solid #584660;background:none}.settings input[type=checkbox]{width:18px;height:18px}.settings input[type=range]{width:112px}.settings output{width:25px;text-align:right;font-size:10px}.settings p{font-size:11px;line-height:1.6;color:#8f7d9d}.settings button{margin-top:15px;width:100%}.clean{padding-right:0!important}.clean .settings{display:none}@media(max-width:760px){body{padding-right:0}grave-title{height:65svh}footer{position:relative;left:auto;right:auto;bottom:auto;padding:16px 20px}.settings{position:relative;width:100%;border-left:0;border-top:1px solid #46334e;padding:20px}.settings label{max-width:400px}.clean grave-title{height:100svh}}
+</style></head><body>
+<grave-title aria-label="Take it to the grave"></grave-title>
+<header>Take it to the grave / Opening study 01</header>
+<aside class="settings" aria-label="Title settings">
+<h2>Title settings</h2><h3>Palette</h3>
+<label>Background <input type="color" data-setting="paper" aria-label="Background color"></label>
+<label>Lettering <input type="color" data-setting="ink" aria-label="Lettering color"></label>
+<label>Accent <input type="color" data-setting="accent" aria-label="Accent color"></label>
+<h3>Print & motion</h3>
+<label>Edge highlight <input type="checkbox" data-setting="edge"></label>
+<label>Wobble <input type="range" min="0" max="3" step="0.05" data-setting="wobble"><output></output></label>
+<label>Paper noise <input type="range" min="0" max="2" step="0.05" data-setting="grain"><output></output></label>
+<label>Riso texture <input type="range" min="0" max="1.5" step="0.05" data-setting="riso"><output></output></label>
+<h3>Light</h3>
+<label>Bloom <input type="range" min="0" max="2" step="0.05" data-setting="bloom"><output></output></label>
+<label>Bloom spread <input type="range" min="0.25" max="4" step="0.05" data-setting="bloomRadius"><output></output></label>
+<p>Changes save automatically on this browser. Press H for a clean preview.</p><button id="download">Download full loop · MP4</button><p id="export-status" role="status" aria-live="polite">1080p / 30 fps / 14 seconds / optimized ~5 MB</p><button id="reset">Reset settings</button>
+</aside>
+<footer><button id="play">Pause</button><button id="restart">Replay</button><label>Threshold <input id="threshold" aria-label="Threshold" type="range" min="0" max="255" value="0"><output>0</output></label><span class="hint">14 second loop · H to hide controls</span></footer>
+<script type="module">
+import {DEFAULT_SETTINGS} from './title.js';
+import {downloadLoop} from './export.js';
+const title=document.querySelector('grave-title'),play=document.querySelector('#play'),slider=document.querySelector('#threshold'),output=slider.nextElementSibling;
+const storageKey='grave-title-settings-v1';
+try{const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');for(const [key,value] of Object.entries(saved)){if(!(key in DEFAULT_SETTINGS))continue;if(typeof DEFAULT_SETTINGS[key]==='string'&&!/^#[0-9a-f]{6}$/i.test(value))continue;if(typeof value!==typeof DEFAULT_SETTINGS[key])continue;const control=document.querySelector(`[data-setting="${key}"]`);if(typeof value==='number'&&(!Number.isFinite(value)||value<Number(control.min)||value>Number(control.max)))continue;title.settings[key]=value;}}catch{}
+const controls=[...document.querySelectorAll('[data-setting]')];
+function sync(){for(const control of controls){const value=title.settings[control.dataset.setting];if(control.type==='checkbox')control.checked=value;else control.value=value;if(control.nextElementSibling?.tagName==='OUTPUT')control.nextElementSibling.value=Number(value).toFixed(2);}}
+function save(){try{localStorage.setItem(storageKey,JSON.stringify(title.settings));}catch{}}
+for(const control of controls)control.oninput=()=>{title.settings[control.dataset.setting]=control.type==='checkbox'?control.checked:control.type==='range'?Number(control.value):control.value;sync();save();};
+document.querySelector('#reset').onclick=()=>{title.settings={...DEFAULT_SETTINGS};sync();save();};sync();play.textContent=title.paused?'Play':'Pause';
+const download=document.querySelector('#download'),status=document.querySelector('#export-status');
+download.onclick=async()=>{download.disabled=true;download.textContent='Preparing MP4…';try{const video=await downloadLoop(title,p=>{status.textContent=`Rendering full loop… ${p}%`;});status.textContent=`MP4 downloaded / ${(video.size/1000000).toFixed(1)} MB / 1080p / 30 fps`;}catch(error){status.textContent=error.message;}finally{download.disabled=false;download.textContent='Download full loop · MP4';}};
+if(new URLSearchParams(location.search).has('clean'))document.body.classList.add('clean');
+play.onclick=()=>{title.paused=!title.paused;play.textContent=title.paused?'Play':'Pause'};
+document.querySelector('#restart').onclick=()=>{title.replay();play.textContent='Pause'};
+slider.oninput=()=>{title.threshold=Number(slider.value)/255;play.textContent='Play'};
+title.addEventListener('thresholdchange',e=>{slider.value=Math.round(e.detail*255);output.value=slider.value});
+addEventListener('keydown',e=>{if(e.key.toLowerCase()==='h')document.body.classList.toggle('clean')});
+</script></body></html>

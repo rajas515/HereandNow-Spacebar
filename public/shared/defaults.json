@@ -1,0 +1,48 @@
+{
+  "print": {
+    "tint": 1,
+    "riso": 0.7,
+    "sketch": 0.4,
+    "wobble": 0.4,
+    "dotSize": 3.4,
+    "paper": "#1a1d4a",
+    "contrast": 0.84,
+    "background": 0.97,
+    "threshold": 0.35,
+    "inkA": "#2939c2",
+    "inkB": "#fd0280",
+    "highlight": "#4b58c5"
+  },
+  "grades": {
+    "ball": {
+      "exposure": -0.26,
+      "contrast": 1.21,
+      "shadows": -0.65,
+      "highlights": -0.59,
+      "saturation": 1,
+      "temperature": 0.18,
+      "tint": 0.04,
+      "value": 0.47
+    },
+    "room": {
+      "exposure": 1.12,
+      "contrast": 0.25,
+      "shadows": 0.97,
+      "highlights": 0.31,
+      "saturation": 1.37,
+      "temperature": -0.2,
+      "tint": 0.87,
+      "value": 0.08
+    },
+    "foliage": {
+      "exposure": 2,
+      "contrast": 1.96,
+      "shadows": 0.64,
+      "highlights": 0.12,
+      "saturation": 1,
+      "temperature": 0,
+      "tint": -0.56,
+      "value": 0.62
+    }
+  }
+}

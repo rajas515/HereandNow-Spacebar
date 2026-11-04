@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "npm run build: syntax and static references passed",
+    "map bridge regression passed",
+    "Browser: disco standalone rendered",
+    "Browser: architecture standalone rendered",
+    "Browser: in-the-life-of standalone rendered",
+    "Browser: skeletons-in-the-closet standalone rendered",
+    "Browser: existing map and shared controls opened"
+  ],
+  "notes": [
+    "Original combined map keeps two original scenes; newer cards stay standalone.",
+    "Browser-local saved settings are not portable between preview origins.",
+    "A MutationObserver error appeared during browser tooling inspection of the map; no MutationObserver exists in the project source."
+  ],
+  "source": "Latest working scene-map with retained Green Hour card sources"
+}

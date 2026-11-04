@@ -1,0 +1,33 @@
+{
+  "source": "lab-studio-pinup.blend",
+  "sourceSha256": "55d941b2e009ace75b9f35faf66f90fec6c8663f78f508c9a63ba94dcc63e245",
+  "sourceObjects": 1026,
+  "bytes": 2527568,
+  "meshes": {
+    "room": {
+      "vertices": 716,
+      "triangles": 1364
+    },
+    "windows-studio": {
+      "vertices": 32,
+      "triangles": 16
+    },
+    "windows-right": {
+      "vertices": 36,
+      "triangles": 18
+    },
+    "objects": {
+      "vertices": 33202,
+      "triangles": 60580
+    },
+    "hero-Mannequin textured low poly": {
+      "vertices": 2444,
+      "triangles": 4836
+    },
+    "hero-Plane": {
+      "vertices": 54,
+      "triangles": 76
+    }
+  },
+  "seconds": 7.17
+}

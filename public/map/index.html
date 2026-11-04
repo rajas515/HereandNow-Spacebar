@@ -1,0 +1,48 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1a1d4a"><title>Green hour - scene map</title><link rel="stylesheet" href="../disco/style.css"><link rel="stylesheet" href="./map.css"><link rel="stylesheet" href="../shared/studio.css"></head><body>
+<main id="map-viewport" tabindex="0" aria-label="Pannable map of two illustrated scenes"><div id="world"><section class="scene-node" data-id="disco"><iframe id="disco-frame" title="Disco studio scene" src="../disco/?map=1"></iframe></section><section class="scene-node" data-id="architecture"><iframe id="architecture-frame" title="Architecture and neon scene" src="../architecture/?map=1"></iframe></section></div></main>
+<aside id="style-panel" aria-label="Print and drawing controls" hidden>
+<div class="panel-tools">
+<div class="palette" role="group" aria-label="Print colors">
+<input type="color" id="paper-color" value="#1a1d4a" aria-label="Paper color">
+<input type="color" id="ink-a-color" value="#2939c2" aria-label="Violet ink color">
+<input type="color" id="ink-b-color" value="#fd0280" aria-label="Magenta ink color">
+<input type="color" id="highlight-color" value="#4b58c5" aria-label="Highlight ink color">
+</div>
+<button id="reset-style" class="small-icon" aria-label="Reset print settings"><svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></svg></button>
+<button id="close-panel" class="small-icon" aria-label="Hide print controls"><svg viewBox="0 0 24 24"><path d="m7 7 10 10M7 17 17 7"/></svg></button>
+</div>
+<div class="target-tabs" role="group" aria-label="Color control area">
+<button id="target-print" class="small-icon active" aria-label="Print controls" aria-pressed="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" stroke-width="2.5"/></svg></button>
+<button id="target-ball" class="small-icon" aria-label="Grade disco ball" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-5 5-5 11 0 16M12 4c5 5 5 11 0 16"/></svg></button>
+<button id="target-room" class="small-icon" aria-label="Grade room" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M3 4h18v16H3ZM12 4v16M3 12h18"/></svg></button>
+<button id="target-foliage" class="small-icon" aria-label="Grade foliage" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 19C-1 7 10 3 21 3c0 11-5 19-16 16ZM5 19 17 7"/></svg></button>
+</div>
+<section id="print-controls" aria-label="Print controls"><label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s-7 7-7 12a7 7 0 0 0 14 0c0-5-7-12-7-12Z"/><path d="M12 7v13"/></svg><input type="range" id="tint" min="0" max="1" step="0.01" value="1" aria-label="Palette tint"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" stroke-width="2.5"/></svg><input type="range" id="riso" min="0" max="1" step="0.01" value="0.7" aria-label="Riso texture strength"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 16-1 5 5-1L21 8l-4-4Z M14 7l4 4M4 21l5-1"/></svg><input type="range" id="sketch" min="0" max="1" step="0.01" value="0.4" aria-label="Sketchiness"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7c4-8 5 8 9 0s5 8 9 0M3 17c4-8 5 8 9 0s5 8 9 0"/></svg><input type="range" id="wobble" min="0" max="1" step="0.01" value="0.4" aria-label="Hand-drawn edge wobble"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2"/><circle cx="16" cy="12" r="5"/></svg><input type="range" id="dot-size" min="1.5" max="9" step="0.1" value="3.4" aria-label="Halftone dot size"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M12 4a8 8 0 0 1 0 16Z"/></svg><input type="range" id="contrast" min="0.5" max="3" step="0.01" value="0.84" aria-label="Duotone contrast"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-5 9 5-9 5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg><input type="range" id="background-value" min="0.15" max="1" step="0.01" value="0.97" aria-label="Background brightness"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 3 6 6 3-6 3-3 6-3-6-6-3 6-3ZM19 2v4M17 4h4"/></svg><input type="range" id="highlight-threshold" min="0.05" max="0.95" step="0.01" value="0.35" aria-label="Pink highlight threshold"></label>
+</section>
+<section id="grade-controls" aria-label="Region color controls" hidden><label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg><input type="range" id="grade-exposure" min="-2" max="2" step="0.01" value="0" aria-label="Region exposure"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 5v14"/></svg><input type="range" id="grade-value" min="-1" max="1" step="0.01" value="0" aria-label="Region value"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M12 4a8 8 0 1 1 0 16 8 8 0 0 1 0-16"/></svg><input type="range" id="grade-contrast" min="0.25" max="3" step="0.01" value="1" aria-label="Region contrast"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 4a8 8 0 1 0 3 12A8 8 0 0 1 17 4Z"/></svg><input type="range" id="grade-shadows" min="-1" max="1" step="0.01" value="0" aria-label="Region shadows"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 3 6 6 3-6 3-3 6-3-6-6-3 6-3Z"/></svg><input type="range" id="grade-highlights" min="-1" max="1" step="0.01" value="0" aria-label="Region highlights"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s-7 8-7 12a7 7 0 0 0 14 0c0-4-7-12-7-12Z"/></svg><input type="range" id="grade-saturation" min="0" max="2" step="0.01" value="1" aria-label="Region saturation"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15V5a3 3 0 0 1 6 0v10a5 5 0 1 1-6 0ZM12 9v10"/></svg><input type="range" id="grade-temperature" min="-1" max="1" step="0.01" value="0" aria-label="Region temperature"></label>
+<label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16M8 4v8M16 12v8"/></svg><input type="range" id="grade-tint" min="-1" max="1" step="0.01" value="0" aria-label="Region color tint"></label>
+</section>
+</aside>
+<nav class="map-nodes" aria-label="Scene map"><button id="go-disco" aria-label="Go to disco studio" aria-pressed="true"><svg viewBox="0 0 50 30"><path d="M3 8 23 3 31 24 7 27Z"/><circle cx="22" cy="13" r="5"/></svg></button><span aria-hidden="true"></span><button id="go-architecture" aria-label="Go to architecture scene" aria-pressed="false"><svg viewBox="0 0 50 30"><path d="m3 9 29-6 3 19L9 27ZM33 10l13 1-2 16-10-4"/></svg></button></nav>
+<nav class="dock" aria-label="Map and scene controls">
+<button class="icon-button" id="previous-scene" aria-label="Previous scene"><svg viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></svg></button>
+<button class="icon-button" id="map-overview" aria-label="Show both scenes"><svg viewBox="0 0 24 24"><path d="M3 4h7v7H3ZM14 7h7v13h-7ZM3 15h7v5H3Z"/></svg></button>
+<button class="icon-button" id="next-scene" aria-label="Next scene"><svg viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></svg></button><span class="dock-divider"></span>
+<button class="icon-button" id="scene-wide" aria-label="Return active scene to wide view"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3ZM12 5v14"/></svg></button>
+<button class="icon-button" id="scene-zoom" aria-label="Advance active scene zoom"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6M10 7v6"/></svg></button>
+<button class="icon-button" id="motion-toggle" aria-label="Pause motion" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg></button>
+<button class="icon-button" id="settings-toggle" aria-label="Shared print controls" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 7h5m5 0h6M4 17h10m5 0h1"/><circle cx="11.5" cy="7" r="2.5"/><circle cx="16.5" cy="17" r="2.5"/></svg></button>
+</nav><script type="module" src="./map.js"></script></body></html>
