@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1a1d4a"><title>Green hour - scene map</title><link rel="stylesheet" href="../disco/style.css"><link rel="stylesheet" href="./map.css"><link rel="stylesheet" href="../shared/studio.css"></head><body>
-<main id="map-viewport" tabindex="0" aria-label="Pannable map of two illustrated scenes"><div id="world"><section class="scene-node" data-id="disco"><iframe id="disco-frame" title="Disco studio scene" src="../disco/?map=1"></iframe></section><section class="scene-node" data-id="architecture"><iframe id="architecture-frame" title="Architecture and neon scene" src="../architecture/?map=1"></iframe></section></div></main>
+<main id="map-viewport" tabindex="0" aria-label="Pannable map of six scene studies"><div id="world"></div></main><header class="map-heading"><a href="../">Scene studies</a><span id="active-card-name">Disco ball</span><span id="map-load-status" role="status"></span></header>
 <aside id="style-panel" aria-label="Print and drawing controls" hidden>
 <div class="panel-tools">
 <div class="palette" role="group" aria-label="Print colors">
@@ -36,10 +36,10 @@
 <label class="slider-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16M8 4v8M16 12v8"/></svg><input type="range" id="grade-tint" min="-1" max="1" step="0.01" value="0" aria-label="Region color tint"></label>
 </section>
 </aside>
-<nav class="map-nodes" aria-label="Scene map"><button id="go-disco" aria-label="Go to disco studio" aria-pressed="true"><svg viewBox="0 0 50 30"><path d="M3 8 23 3 31 24 7 27Z"/><circle cx="22" cy="13" r="5"/></svg></button><span aria-hidden="true"></span><button id="go-architecture" aria-label="Go to architecture scene" aria-pressed="false"><svg viewBox="0 0 50 30"><path d="m3 9 29-6 3 19L9 27ZM33 10l13 1-2 16-10-4"/></svg></button></nav>
+<nav class="map-nodes" aria-label="Scene map"></nav>
 <nav class="dock" aria-label="Map and scene controls">
 <button class="icon-button" id="previous-scene" aria-label="Previous scene"><svg viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></svg></button>
-<button class="icon-button" id="map-overview" aria-label="Show both scenes"><svg viewBox="0 0 24 24"><path d="M3 4h7v7H3ZM14 7h7v13h-7ZM3 15h7v5H3Z"/></svg></button>
+<button class="icon-button" id="map-overview" aria-label="Show all cards"><svg viewBox="0 0 24 24"><path d="M3 4h7v7H3ZM14 7h7v13h-7ZM3 15h7v5H3Z"/></svg></button>
 <button class="icon-button" id="next-scene" aria-label="Next scene"><svg viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></svg></button><span class="dock-divider"></span>
 <button class="icon-button" id="scene-wide" aria-label="Return active scene to wide view"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3ZM12 5v14"/></svg></button>
 <button class="icon-button" id="scene-zoom" aria-label="Advance active scene zoom"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6M10 7v6"/></svg></button>

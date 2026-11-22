@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {CARDS,overviewPose,screenRect,presence} from '../public/map/registry.js';
+import {DEFAULT_LAYOUT} from '../public/shared/studio.js';
+import {mergeSavedLayout} from '../public/shared/layout-state.js';
+const nodes=()=>CARDS.map(n=>({...n,x:DEFAULT_LAYOUT[n.id].stack.x/100,y:DEFAULT_LAYOUT[n.id].stack.y/100,size:DEFAULT_LAYOUT[n.id].stack.scale}));
+test('old two-card saves retain placements and gain all new card defaults',()=>{const merged=mergeSavedLayout(DEFAULT_LAYOUT,{disco:{stack:{x:27,scale:1.2,color:{exposure:.4}}},architecture:{stack:{y:19}}});assert.equal(merged.disco.stack.x,27);assert.equal(merged.architecture.stack.y,19);assert.equal(merged.disco.stack.color.exposure,.4);assert.equal(merged['skeletons-in-the-closet'].stack.x,110);assert.equal(Object.keys(merged).length,6);assert.equal(DEFAULT_LAYOUT.disco.stack.x,12);});
+test('invalid saved fields and unknown card data do not poison the layout',()=>{const merged=mergeSavedLayout(DEFAULT_LAYOUT,{disco:{stack:{x:'bad',scale:Infinity,label:'wrong',color:{exposure:NaN}}},unknown:{stack:{x:22}}});assert.deepEqual(merged,DEFAULT_LAYOUT);});
+test('overview frames all six cards in landscape and portrait',()=>{for(const [w,h]of [[1280,720],[390,844]]){const list=nodes(),pose=overviewPose(list,w,h);for(const n of list){const r=screenRect(n,pose,w,h);assert.ok(r.left>=0&&r.right<=w&&r.top>=0&&r.bottom<=h,n.id);assert.ok(Math.abs(presence(r,w,h)-1)<1e-9);}}});
+test('visibility handles rotated offscreen cards and distant user placements',()=>{const card={x:8,y:-3,size:1.7,rotation:32};assert.equal(presence(screenRect(card,{x:0,y:0,z:1},1280,720),1280,720),0);const list=[...nodes(),card],pose=overviewPose(list,1280,720),r=screenRect(card,pose,1280,720);assert.ok(r.left>=0&&r.right<=1280&&r.top>=0&&r.bottom<=720);});

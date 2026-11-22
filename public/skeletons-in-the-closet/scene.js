@@ -1,19 +1,27 @@
+import {applyMapCamera} from '../shared/map-camera.js';
+import {applyMapAppearance} from '../shared/map-appearance.js';
 import * as THREE from '../shared/vendor/three.module.js';
-import {GLTFLoader} from '../shared/vendor/GLTFLoader.js';
+import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
-import {installMapBridge} from '../shared/map-bridge.js';
 import {installComposition} from '../shared/cutout/composition.js';
 import {createStageClipping} from '../shared/cutout/stage-clipping.js';
 import {addAtmosphere} from '../shared/cutout/atmosphere.js';
 import {roomCutOutline} from './cut-outline.js';
 import {createWindowBackgrounds} from './windows.js';
-
 import {createDaylight} from './daylight.js';
 import {createMannequinInset} from './mannequin-inset.js';
-let mannequinInset;
+
+const assetUrl=path=>new URL(path,import.meta.url).href;
+
+// Runs on the standalone page (pageHost) or inside the exhibition world.
+export async function mount(host){
+let mapViewportState={};
+let mapColor={},mapPrint={},mapBridge;
+
+let mannequinInset,lastInsetDraw=0;
 const daylight=createDaylight();
-const $=s=>document.querySelector(s),canvas=$('#scene'),stage=$('#stage'),embedded=parent!==window;
-if(embedded)document.documentElement.classList.add('map-embedded');
+const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage'),embedded=host.embedded;
+if(embedded)host.documentElement.classList.add('map-embedded');
 const KEY='green-hour-skeletons-in-the-closet-v1';
 const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.12,quality:'balanced',floorLight:-.35,roomLight:0,objectLight:-.15,windowLight:-.35,floorWarmth:-.15,roomWarmth:0,objectWarmth:.08,windowWarmth:-.1};
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}');}catch{}
@@ -39,13 +47,14 @@ function configure(){
  for(const region of ['room','ball','foliage'])for(const [k,v] of Object.entries({exposure:Number(settings.exposure)+Number(region==='ball'?settings.objectLight:region==='foliage'?settings.windowLight:settings.roomLight),contrast:1.12,shadows:-.08,highlights:0,saturation:1,temperature:Number(region==='ball'?settings.objectWarmth:region==='foliage'?settings.windowWarmth:settings.roomWarmth),tint:0,value:0}))pass.setGrade(region,k,v);
  pass.uniforms.uFloor0.value.set(Number(settings.exposure)+Number(settings.floorLight),1.05,-.02,.08);pass.uniforms.uFloor1.value.set(.8,Number(settings.floorWarmth),-.12,0);
  $('#print').setAttribute('aria-pressed',String(printed));$('#material').setAttribute('aria-pressed',String(!printed));
- for(const k of ['riso','sketch','exposure','lens','width','quality','floorLight','roomLight','objectLight','windowLight','floorWarmth','roomWarmth','objectWarmth','windowWarmth'])$('#'+k).value=settings[k];dirty=true;wake();
+ for(const k of ['riso','sketch','exposure','lens','width','quality','floorLight','roomLight','objectLight','windowLight','floorWarmth','roomWarmth','objectWarmth','windowWarmth'])$('#'+k).value=settings[k];applyMapAppearance(pass,mapColor,mapPrint);
+ dirty=true;wake();
 }
 function resize(){
  if(!renderer)return;const r=stage.getBoundingClientRect(),ratio=settings.quality==='high'?1.5:settings.quality==='low'?.75:quality.pixelRatio;
  renderer.setPixelRatio(Math.min(devicePixelRatio,ratio));renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;
  camera.fov=THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(68/2))*Math.max(1,1.4/camera.aspect)));camera.updateProjectionMatrix();pass.resize();pass.cardSize.set(1,1);pass.cardCenter.set(.5,.5);
- if(clipping){const anchor=camera.clone();anchor.fov=camera.fov;anchor.updateProjectionMatrix();anchor.position.copy(base);anchor.lookAt(target);anchor.updateMatrixWorld(true);clipping.setAnchor(anchor);}dirty=true;wake();
+ if(clipping){const anchor=camera.clone();anchor.clearViewOffset();anchor.fov=camera.fov;anchor.updateProjectionMatrix();anchor.position.copy(base);anchor.lookAt(target);anchor.updateMatrixWorld(true);clipping.setAnchor(anchor);}dirty=true;wake();
 }
 function tick(now){
  raf=0;if(!visible||document.hidden||!loaded)return;
@@ -53,23 +62,25 @@ function tick(now){
  if(!dirty&&!moving&&!easing)return;
  if(now-last<1000/(settings.quality==='low'?24:quality.fps)){wake();return;}
  const dt=Math.min(.1,(now-last)/1000||.025);last=now;if(moving)time+=dt;smooth.lerp(destination,1-Math.exp(-dt*7));
+ if(embedded){camera.position.copy(base);applyMapCamera(camera,pan,mapViewportState,stage.clientWidth,stage.clientHeight,.8,5);}
  camera.position.copy(base).add(new THREE.Vector3(pan.x+smooth.x*.11,0,pan.y+smooth.y*.08));camera.lookAt(target.clone().add(new THREE.Vector3(pan.x,0,pan.y)));
  
  atmosphere?.update(time);daylight.update(pan);
  if(Math.abs(pan.x-lightPanX)+Math.abs(pan.y-lightPanZ)>.015){sun.position.set(2+pan.x*.5,4.4,-3.8+pan.y*.22);sun.target.position.set(pan.x*.08,.4,.4);renderer.shadowMap.needsUpdate=true;lightPanX=pan.x;lightPanZ=pan.y;}
  renderer.toneMapping=THREE.NoToneMapping;renderer.info.reset();pass.render(scene,camera,time);
- mannequinInset?.render(pan,smooth,time,settings);
+ if(now-lastInsetDraw>=1000/(quality.detailFps||24)){mannequinInset?.render(pan,smooth,time,settings);lastInsetDraw=now;}
+ if(embedded){canvas.dataset.renderedMapGrades=JSON.stringify(pass.grades);canvas.dataset.mapCamera=JSON.stringify({pan:pan.toArray(),view:camera.view});}
  canvas.dataset.state='ready';canvas.dataset.renderedSettings=JSON.stringify(settings);canvas.dataset.pan=JSON.stringify(pan.toArray());canvas.dataset.frames=String(++frames);canvas.dataset.drawCalls=String(renderer.info.render.calls);canvas.dataset.zoom='disabled';
- perfFrames++;if(now-perfStart>1200){$('#metrics').value=`${Math.round(perfFrames*1000/(now-perfStart))} fps · ${renderer.info.render.calls} draws`;perfFrames=0;perfStart=now;}
+ perfFrames++;if(now-perfStart>1200){$('#metrics').value=`${Math.round(perfFrames*1000/(now-perfStart))} fps Ã‚· ${renderer.info.render.calls} draws`;perfFrames=0;perfStart=now;}
  dirty=false;if(moving||easing)wake();
 }
 async function init(){try{
- renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.info.autoReset=false;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer=host.createRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.info.autoReset=false;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  pass=new PrintPass(renderer);installComposition(pass);
  pass.uniforms.uFloor0={value:new THREE.Vector4()};pass.uniforms.uFloor1={value:new THREE.Vector4()};
  pass.material.fragmentShader='uniform vec4 uFloor0,uFloor1;\n'+pass.material.fragmentShader;
  pass.material.fragmentShader=pass.material.fragmentShader.replace('return m>.8?uGradeBall0:','return m>.65&&m<.79?uFloor0:m>.8?uGradeBall0:').replace('return m>.8?uGradeBall1:','return m>.65&&m<.79?uFloor1:m>.8?uGradeBall1:');
- const [asset,windows]=await Promise.all([new GLTFLoader().loadAsync('./assets/studio.glb?v=20261104-single-apertures'),createWindowBackgrounds(renderer)]);
+ const [asset,windows]=await Promise.all([gltfLoader().loadAsync(assetUrl('./assets/studio.glb?v=draco1')),createWindowBackgrounds(renderer)]);
  garden=windows.garden;const studioWindow=windows.studio;
  asset.scene.traverse(o=>{if(!o.isMesh)return;
   if(o.name==='windows-right'){o.geometry.translate(-.012,0,0);o.material.dispose();o.material=garden;o.castShadow=false;}
@@ -87,10 +98,10 @@ async function init(){try{
  atmosphere=addAtmosphere(scene,{beams:[],contacts:[[-1.02,.82],[1.53,.72]]});
  const outline=roomCutOutline();
  clipping=createStageClipping(renderer,scene,pass,{outline,bounds:[4,4,1.395,3.2,.5,9],roomHeight:10});
- const anchor=camera.clone();anchor.fov=camera.fov;anchor.updateProjectionMatrix();clipping.setAnchor(anchor);
+ const anchor=camera.clone();anchor.clearViewOffset();anchor.fov=camera.fov;anchor.updateProjectionMatrix();clipping.setAnchor(anchor);
  renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
  await renderer.compileAsync(scene,camera);await renderer.compileAsync(pass.scene,pass.camera);
- mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping);
+ mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer);
  loaded=true;$('#loading').hidden=true;dirty=true;wake();
 }catch(error){console.error(error);$('#loading').hidden=true;$('#error').hidden=false;canvas.dataset.state='error';}}
 for(const mode of ['print','material'])$('#'+mode).onclick=()=>{settings.mode=mode;persist();configure();};
@@ -108,7 +119,6 @@ function recenter(){pan.set(0,0);dirty=true;wake();}canvas.addEventListener('dbl
 canvas.addEventListener('keydown',e=>{const moves={ArrowLeft:[-.2,0],ArrowRight:[.2,0],ArrowUp:[0,-.2],ArrowDown:[0,.2]};if(moves[e.code]){e.preventDefault();pan.add(new THREE.Vector2(...moves[e.code]));pan.clampScalar(-5,5);dirty=true;wake();}if(e.code==='Home'){e.preventDefault();recenter();}});
 new ResizeObserver(resize).observe(stage);new IntersectionObserver(([e])=>{visible=e.isIntersecting;dirty=true;wake();}).observe(stage);
 document.addEventListener('visibilitychange',()=>{last=0;dirty=true;wake();});
-installMapBridge({viewport:m=>{visible=m.visible!==false;dirty=true;wake();},palette:m=>{if(pass)for(const [k,v] of Object.entries(m.print||{}))if(k in pass.settings)pass.set(k,v);dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};resize();},command:m=>{if(m.command==='motion'){paused=!!m.paused;motion();}if(m.command==='wide')recenter();dirty=true;wake();}});
-init();
-
-
+mapBridge=host.installMapBridge({viewport:m=>{visible=m.visible!==false;mapViewportState=m;dirty=true;wake();},palette:m=>{mapPrint=m.print||{};configure();dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};mapColor=m.layout?.['skeletons-in-the-closet']?.stack?.color||{};configure();resize();},dragEnd:()=>{down=null;},command:m=>{if(m.command==='motion'){paused=!!m.paused;motion();}if(m.command==='wide')recenter();dirty=true;wake();}});
+await init();
+}

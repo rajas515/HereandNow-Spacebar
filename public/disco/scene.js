@@ -1,27 +1,31 @@
 import {DEFAULT_LAYOUT} from '../shared/studio.js';
-import {installMapBridge} from '../shared/map-bridge.js';
-const MAP_EMBEDDED=parent!==window;let mapViewport={visible:true,presence:1,dragging:false};let mapBridge;let sceneLayout=structuredClone(DEFAULT_LAYOUT.disco),baseMapGrades,quality={fps:40,pixelRatio:1.0,detailFps:24};let lastMainDraw=0,lastDetailDraw=-1000,detailCacheKey='',backCacheKey='',layoutRevision=0;
-if(MAP_EMBEDDED)document.documentElement.classList.add('map-embedded');
 import * as THREE from '../shared/vendor/three.module.js';
-import {GLTFLoader} from '../shared/vendor/GLTFLoader.js';
+import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass,PRINT_DEFAULTS,GRADE_DEFAULTS} from '../shared/print-pass.js';
+
+const assetUrl=path=>new URL(path,import.meta.url).href;
+
+// Runs on the standalone page (pageHost) or inside the exhibition world.
+export async function mount(host){
+const MAP_EMBEDDED=host.embedded;let mapViewport={visible:true,presence:1,dragging:false};let mapBridge;let sceneLayout=structuredClone(DEFAULT_LAYOUT.disco),baseMapGrades,quality={fps:40,pixelRatio:1.0,detailFps:24};let lastMainDraw=0,lastDetailDraw=-1000,detailCacheKey='',backCacheKey='',layoutRevision=0;
+if(MAP_EMBEDDED)host.documentElement.classList.add('map-embedded');
 
 // Dimensions are in metres. The photographs supply surface detail; geometry
 // supplies depth, silhouettes, parallax and the two authored camera compositions.
-const $ = (s) => document.querySelector(s);
+const $ = (s) => host.$(s);
 const canvas = $('#scene');
 const TRANSITION_FPS=24;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true,powerPreference:'high-performance'});
+  renderer = host.createRenderer({canvas, antialias:true, alpha:true,powerPreference:'high-performance'});
 } catch (error) {
   $('#loading').hidden = true;
   $('#error').hidden = false;
   throw error;
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio, quality.pixelRatio));
-renderer.setSize(innerWidth, innerHeight);
+renderer.setSize(host.innerWidth, host.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
@@ -34,14 +38,14 @@ let detailRenderer,detailPass,detailCamera,backRenderer,backPass,backScene,backC
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#f2efe8');
 scene.fog = null;
-const camera = new THREE.PerspectiveCamera(53, innerWidth / innerHeight, .05, 90);
+const camera = new THREE.PerspectiveCamera(53, host.innerWidth / host.innerHeight, .05, 90);
 const world = new THREE.Group();
 scene.add(world);
 let seed=10421;
 function rand(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646;}
 function range(a,b){return a+(b-a)*rand();}
 const photos = {};
-async function loadPhoto(n){const image=new Image();image.src=`./assets/reference-${n}.jpg`;await image.decode();photos[n]=image;}
+async function loadPhoto(n){const image=new Image();image.src=assetUrl(`./assets/reference-${n}.webp?v=webp1`);await image.decode();photos[n]=image;}
 
 // UV texture sampling is deliberately separate from the room photographs:
 // furniture and architecture remain independent, low-polygon 3D objects.
@@ -75,7 +79,7 @@ let frame=0,elapsed=0,paused=reducedMotion,close=false,transition=null,viewMix=0
 const pointer=new THREE.Vector2(0,0),smoothPointer=new THREE.Vector2(0,0);
 const panTarget=new THREE.Vector2(),panCurrent=new THREE.Vector2();
 let panStart=null,isDragging=false;
-function clampPan(){panTarget.x=THREE.MathUtils.clamp(panTarget.x,-innerWidth*.9,innerWidth*.9);panTarget.y=THREE.MathUtils.clamp(panTarget.y,-innerHeight*.9,innerHeight*.9);}
+function clampPan(){panTarget.x=THREE.MathUtils.clamp(panTarget.x,-host.innerWidth*.9,host.innerWidth*.9);panTarget.y=THREE.MathUtils.clamp(panTarget.y,-host.innerHeight*.9,host.innerHeight*.9);}
 const pointerNDC=new THREE.Vector2(-20,-20);
 const raycaster=new THREE.Raycaster();
 let downPosition=null;
@@ -339,8 +343,8 @@ const wideTarget=new THREE.Vector3(-.8,1.9,-.5);
 const closePosition=new THREE.Vector3(-1.6,3.1,-1.0);
 const closeTarget=new THREE.Vector3(-2.65,2.72,-2.5);
 function cameraPose(){
-  const portrait=innerWidth/innerHeight<.85;
-  camera.aspect=innerWidth/innerHeight*printPass.cardSize.x/printPass.cardSize.y;
+  const portrait=host.innerWidth/host.innerHeight<.85;
+  camera.aspect=host.innerWidth/host.innerHeight*printPass.cardSize.x/printPass.cardSize.y;
   const wide=widePosition.clone().sub(wideTarget).multiplyScalar((portrait?.95:.82)*Math.max(1,.95/camera.aspect)/1.3).add(wideTarget);
   // A straight push-in keeps the cutout plates at their authored viewing angle.
   const direction=wide.clone().sub(wideTarget).normalize();
@@ -349,9 +353,9 @@ function cameraPose(){
   const parallax=paused?0:(1-viewMix)*.10+viewMix*.035;
   camera.position.x+=smoothPointer.x*parallax;
   camera.position.y+=smoothPointer.y*parallax*.55;
-  camera.position.x+=panCurrent.x/innerWidth*.55;camera.position.y-=panCurrent.y/innerHeight*.35;
+  camera.position.x+=panCurrent.x/host.innerWidth*.55;camera.position.y-=panCurrent.y/host.innerHeight*.35;
   look.lerpVectors(wideTarget,closeTarget,viewMix);
-  look.x+=panCurrent.x/innerWidth*.16;look.y-=panCurrent.y/innerHeight*.10;
+  look.x+=panCurrent.x/host.innerWidth*.16;look.y-=panCurrent.y/host.innerHeight*.10;
 
   look.x+=smoothPointer.x*.07;look.y+=smoothPointer.y*.045;
   camera.lookAt(look);
@@ -377,7 +381,7 @@ function syncStyle(){
     const input=$(selector);input.value=printPass.settings[name];
     if(input.type==='range')input.style.setProperty('--fill',`${(Number(input.value)-Number(input.min))/(Number(input.max)-Number(input.min))*100}%`);
   }
-  document.documentElement.style.setProperty('--paper',printPass.settings.paper);document.documentElement.style.setProperty('--ink',printPass.settings.inkA);document.documentElement.style.setProperty('--pink',printPass.settings.inkB);
+  host.documentElement.style.setProperty('--paper',printPass.settings.paper);host.documentElement.style.setProperty('--ink',printPass.settings.inkA);host.documentElement.style.setProperty('--pink',printPass.settings.inkB);
   canvas.dataset.printSettings=JSON.stringify(printPass.settings);
 }
 try{
@@ -436,8 +440,8 @@ canvas.addEventListener('pointerleave',()=>{overMainFrame=false;if(!panStart){po
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;downPosition=[e.clientX,e.clientY];panStart={x:e.clientX,y:e.clientY,px:panTarget.x,py:panTarget.y};isDragging=false;canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointerup',e=>{const dragged=isDragging;panStart=null;isDragging=false;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor='grab';if(dragged||!downPosition||Math.hypot(e.clientX-downPosition[0],e.clientY-downPosition[1])>8){downPosition=null;return;}if(MAP_EMBEDDED&&mapViewport.overview){mapBridge?.focus();downPosition=null;return;}raycaster.setFromCamera(canvasPoint(e),camera);if(!close&&hitsMainFrame()){setView(true);}else if(ballCore&&raycaster.intersectObject(ballCore,false).length)setView(!close);downPosition=null;});
 canvas.addEventListener('pointercancel',()=>{panStart=null;isDragging=false;downPosition=null;});
-canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?innerHeight:1;if(e.shiftKey){panTarget.x-=e.deltaY*unit;}else{panTarget.x-=e.deltaX*unit;panTarget.y-=e.deltaY*unit;}clampPan();},{passive:false});
-window.addEventListener('resize',()=>{renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);printPass.resize();camera.aspect=innerWidth/innerHeight;cameraPose();});
+canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===1?16:e.deltaMode===2?host.innerHeight:1;if(e.shiftKey){panTarget.x-=e.deltaY*unit;}else{panTarget.x-=e.deltaX*unit;panTarget.y-=e.deltaY*unit;}clampPan();},{passive:false});
+window.addEventListener('resize',()=>{renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(host.innerWidth,host.innerHeight);printPass.resize();camera.aspect=host.innerWidth/host.innerHeight;cameraPose();});
 document.addEventListener('visibilitychange',()=>{last=performance.now();});
 let last=performance.now();
 const labelProjected=new THREE.Vector3();let perfStart=performance.now(),perfFrames=0;
@@ -449,7 +453,7 @@ function animate(now){
   if(!paused)elapsed+=dt;
   if(transition){let t=Math.min(1,Math.floor((now-transition.start)/(1000/TRANSITION_FPS))*(1000/TRANSITION_FPS)/transition.duration);t=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;viewMix=THREE.MathUtils.lerp(transition.from,transition.to,t);if(now-transition.start>=transition.duration){viewMix=transition.to;transition=null;}}
   smoothPointer.lerp(pointer,1-Math.exp(-dt*2.5));
-  panCurrent.lerp(panTarget,1-Math.exp(-dt*9));printPass.setPan(panCurrent.x/innerWidth,panCurrent.y/innerHeight);
+  panCurrent.lerp(panTarget,1-Math.exp(-dt*9));if(!MAP_EMBEDDED)printPass.setPan(panCurrent.x/host.innerWidth,panCurrent.y/host.innerHeight);
   printPass.cardSize.y=THREE.MathUtils.lerp(.94,.82,viewMix);
   cameraPose();
   if(ball){
@@ -476,7 +480,7 @@ function animate(now){
   const renderStats=printPass.render(scene,camera,elapsed);renderDetailFrame();frame++;perfFrames++;if(canvas.dataset.layoutRevision!==String(layoutRevision)){canvas.dataset.renderedLayout=JSON.stringify(sceneLayout);canvas.dataset.layoutRevision=String(layoutRevision);}
   if(now-perfStart>=1000){canvas.dataset.performance=JSON.stringify({fps:Number((perfFrames*1000/(now-perfStart)).toFixed(1)),drawCalls:renderStats.drawCalls,triangles:renderStats.triangles,pixelRatio:renderer.getPixelRatio(),detailFps:quality.detailFps});perfStart=now;perfFrames=0;}
   if(frame%60===0){
-    window.__greenHour={ready:true,approach:'baked-paper-cutouts',cards:bakedCards.length,transitionFps:TRANSITION_FPS,pan:{x:Math.round(panCurrent.x),y:Math.round(panCurrent.y)},view:close?'close':'wide',transitioning:!!transition,motion:!paused,tiles:tiles.count,...renderStats,textureSources:Object.keys(photos).length,importedChairs:importedChairs.length,ballScreen:{x:Math.round((labelProjected.x*.5*printPass.cardSize.x+printPass.cardCenter.x)*innerWidth),y:Math.round((1-(labelProjected.y*.5*printPass.cardSize.y+printPass.cardCenter.y))*innerHeight)}};
+    window.__greenHour={ready:true,approach:'baked-paper-cutouts',cards:bakedCards.length,transitionFps:TRANSITION_FPS,pan:{x:Math.round(panCurrent.x),y:Math.round(panCurrent.y)},view:close?'close':'wide',transitioning:!!transition,motion:!paused,tiles:tiles.count,...renderStats,textureSources:Object.keys(photos).length,importedChairs:importedChairs.length,ballScreen:{x:Math.round((labelProjected.x*.5*printPass.cardSize.x+printPass.cardCenter.x)*host.innerWidth),y:Math.round((1-(labelProjected.y*.5*printPass.cardSize.y+printPass.cardCenter.y))*host.innerHeight)}};
     canvas.dataset.sceneState=JSON.stringify({...window.__greenHour,rotation:Number(ball.rotation.y.toFixed(3))});
   }
 }
@@ -545,12 +549,12 @@ function setWhiteGlints(pass,viewCamera){
 function buildDetailFrame(){
   const holder=document.createElement('aside');holder.id='detail-frame';holder.setAttribute('aria-label','Live disco ball detail');
   const backing=document.createElement('aside');backing.id='composition-card';backing.setAttribute('aria-hidden','true');const backCanvas=document.createElement('canvas');backing.append(backCanvas);$('#experience').append(backing);
-  backRenderer=new THREE.WebGLRenderer({canvas:backCanvas,antialias:true});backRenderer.setPixelRatio(Math.min(devicePixelRatio,quality.pixelRatio));backRenderer.setSize(600,500,false);
+  backRenderer=host.createRenderer({canvas:backCanvas,antialias:true});backRenderer.setPixelRatio(Math.min(devicePixelRatio,quality.pixelRatio));backRenderer.setSize(600,500,false);
   backScene=new THREE.Scene();backCamera=new THREE.OrthographicCamera(-1,1,1,-1,.01,10);backCamera.position.z=2;
   backScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial({color:'#222978'})));
   backPass=new PrintPass(backRenderer);backPass.cardSize.set(1,1);backPass.cardCenter.set(.5,.5);
   const detailCanvas=document.createElement('canvas');detailCanvas.setAttribute('aria-label','Ball portrait and lifted mirror tile macro');holder.append(detailCanvas);$('#experience').append(holder);
-  detailRenderer=new THREE.WebGLRenderer({canvas:detailCanvas,antialias:true,alpha:false});detailRenderer.setPixelRatio(Math.min(devicePixelRatio,quality.pixelRatio));detailRenderer.setSize(420,300,false);detailRenderer.outputColorSpace=THREE.SRGBColorSpace;detailRenderer.toneMapping=THREE.ACESFilmicToneMapping;detailRenderer.toneMappingExposure=1.2;
+  detailRenderer=host.createRenderer({canvas:detailCanvas,antialias:true,alpha:false});detailRenderer.setPixelRatio(Math.min(devicePixelRatio,quality.pixelRatio));detailRenderer.setSize(420,300,false);detailRenderer.outputColorSpace=THREE.SRGBColorSpace;detailRenderer.toneMapping=THREE.ACESFilmicToneMapping;detailRenderer.toneMappingExposure=1.2;
   ball.visible=false;cubeCamera.update(detailRenderer,scene);ball.visible=true;
   detailPass=new PrintPass(detailRenderer);detailPass.uniforms.uFaceDrawings.value=1;detailPass.uniforms.uCardSize.value.set(1,1);detailPass.uniforms.uCardCenter.value.set(.5,.5);
   detailCamera=new THREE.PerspectiveCamera(38,1.4,.005,60);
@@ -589,7 +593,7 @@ function gradeFrame(pass,local,solid=false){
  const neutral={exposure:0,contrast:1,shadows:0,highlights:0,saturation:1,temperature:0,tint:0,value:0};
  for(const region of ['ball','room','foliage']){let g=solid?neutral:(baseMapGrades||printPass.grades)[region];g=mixedGrade(g,sceneLayout.stack.color);g=mixedGrade(g,local);for(const [key,value]of Object.entries(g))pass.setGrade(region,key,value);}
 }
-function setQuality(next){const ratio=Math.min(devicePixelRatio,next.pixelRatio)*(mapViewport.overview?.65:1);quality=next;if(renderer.getPixelRatio()!==ratio){renderer.setPixelRatio(ratio);renderer.setSize(innerWidth,innerHeight);printPass.resize();if(detailRenderer){detailRenderer.setPixelRatio(ratio);detailRenderer.setSize(420,300,false);detailPass.resize();detailPass.cardSize.set(1,1);detailPass.cardCenter.set(.5,.5);backRenderer.setPixelRatio(ratio);backRenderer.setSize(600,500,false);backPass.resize();backPass.cardSize.set(1,1);backPass.cardCenter.set(.5,.5);backCacheKey='';}}}
+function setQuality(next){const ratio=Math.min(devicePixelRatio,next.pixelRatio)*(mapViewport.overview?.65:1);quality=next;if(renderer.getPixelRatio()!==ratio){renderer.setPixelRatio(ratio);renderer.setSize(host.innerWidth,host.innerHeight);printPass.resize();if(detailRenderer){detailRenderer.setPixelRatio(ratio);detailRenderer.setSize(420,300,false);detailPass.resize();detailPass.cardSize.set(1,1);detailPass.cardCenter.set(.5,.5);backRenderer.setPixelRatio(ratio);backRenderer.setSize(600,500,false);backPass.resize();backPass.cardSize.set(1,1);backPass.cardCenter.set(.5,.5);backCacheKey='';}}}
 function renderDetailFrame(){
   if(!detailRenderer)return;
   const n=detailNormal.clone().transformDirection(ball.matrixWorld);
@@ -618,7 +622,7 @@ function renderDetailFrame(){
   holder.style.setProperty('--detail-scale',`${(.3+.7*presence)*(cfg.scale||1)}`);
   holder.dataset.presence=presence.toFixed(3);
   holder.firstElementChild.style.clipPath='none';
-  const narrow=innerWidth/innerHeight<.85;holder.style.left=cfg.x+'%';holder.style.top=narrow?(innerHeight*.5+(cfg.y-50)*innerWidth/100)+'px':cfg.y+'%';holder.style.width=`min(${cfg.width}vw,${390*cfg.width/(macro?38:34)}px)`;holder.style.setProperty('--detail-tilt',`${cfg.rotation+smoothPointer.x*.8}deg`);
+  const narrow=host.innerWidth/host.innerHeight<.85;holder.style.left=cfg.x+'%';holder.style.top=narrow?(host.innerHeight*.5+(cfg.y-50)*host.innerWidth/100)+'px':cfg.y+'%';holder.style.width=`min(${cfg.width}vw,${390*cfg.width/(macro?38:34)}px)`;holder.style.setProperty('--detail-tilt',`${cfg.rotation+smoothPointer.x*.8}deg`);
   const depth=cfg.depth;
   const shiftX=panCurrent.x*depth+smoothPointer.x*(macro?5:3);
   const shiftY=panCurrent.y*depth+smoothPointer.y*(macro?3:2);
@@ -645,7 +649,7 @@ function renderDetailFrame(){
   holder.style.clipPath=`polygon(${points.join(',')})`;
   holder.dataset.view=macro?'tile-macro':'ball-portrait';holder.dataset.wipe=openness.toFixed(2);
   const backing=$('#composition-card');
-  const backCfg=sceneLayout.backing;backing.style.left=backCfg.x+'%';backing.style.top=narrow?(innerHeight*.5+(backCfg.y-50)*innerWidth/100)+'px':backCfg.y+'%';backing.style.width=backCfg.width+'%';backing.style.height=narrow?(backCfg.height*innerWidth/100)+'px':backCfg.height+'%';
+  const backCfg=sceneLayout.backing;backing.style.left=backCfg.x+'%';backing.style.top=narrow?(host.innerHeight*.5+(backCfg.y-50)*host.innerWidth/100)+'px':backCfg.y+'%';backing.style.width=backCfg.width+'%';backing.style.height=narrow?(backCfg.height*host.innerWidth/100)+'px':backCfg.height+'%';
   backing.style.transform=`translate(${panCurrent.x*backCfg.depth}px,${panCurrent.y*backCfg.depth}px) rotate(${backCfg.rotation}deg) scale(${(.3+.7*presence)*(backCfg.scale||1)})`;
   backing.firstElementChild.style.clipPath='none';
   backing.style.visibility=macro?'hidden':'visible';
@@ -659,9 +663,9 @@ function renderDetailFrame(){
 async function init(){
   try{
     await Promise.all(Array.from({length:10},(_,i)=>loadPhoto(i+1)));
-    const garden=new Image();garden.src='./assets/garden.jpg';try{await garden.decode();photos.garden=garden;}catch{}
-    faceAtlas=await new THREE.TextureLoader().loadAsync('./assets/face-drawings-atlas.png');faceAtlas.colorSpace=THREE.SRGBColorSpace;faceAtlas.anisotropy=8;
-    chairAsset=(await new GLTFLoader().loadAsync('./assets/purple-chair.glb')).scene;
+    const garden=new Image();garden.src=assetUrl('./assets/garden.webp?v=webp1');try{await garden.decode();photos.garden=garden;}catch{}
+    faceAtlas=await new THREE.TextureLoader().loadAsync(assetUrl('./assets/face-drawings-atlas.webp?v=webp1'));faceAtlas.colorSpace=THREE.SRGBColorSpace;faceAtlas.anisotropy=8;
+    chairAsset=(await gltfLoader().loadAsync(assetUrl('./assets/purple-chair.glb?v=draco1'))).scene;
     buildGarden();buildRoom();buildBall();buildAtmosphere();cameraPose();updateReflections();bakeCutoutStage();combineStaticGeometry();buildDetailFrame();
     renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
     await renderer.compileAsync(scene,camera);
@@ -673,11 +677,12 @@ async function init(){
   }catch(error){console.error('Scene initialization failed:',error);$('#loading').hidden=true;$('#error').hidden=false;}
 }
 
-if(MAP_EMBEDDED)mapBridge=installMapBridge({
+if(MAP_EMBEDDED)mapBridge=host.installMapBridge({
  dragEnd(){panStart=null;isDragging=false;downPosition=null;canvas.style.cursor='grab';},
- viewport(m){const changed=!!mapViewport.overview!==!!m.overview;mapViewport=m;if(changed)setQuality(quality);panTarget.set(THREE.MathUtils.clamp(m.offsetX*.10,-innerWidth*.18,innerWidth*.18),THREE.MathUtils.clamp(m.offsetY*.10,-innerHeight*.18,innerHeight*.18));},
+ viewport(m){const changed=!!mapViewport.overview!==!!m.overview;mapViewport=m;if(changed)setQuality(quality);panTarget.set(THREE.MathUtils.clamp((m.localPanX??m.offsetX)*.10,-host.innerWidth*.18,host.innerWidth*.18),THREE.MathUtils.clamp((m.localPanY??m.offsetY)*.10,-host.innerHeight*.18,host.innerHeight*.18));},
  layout(m){sceneLayout=structuredClone(m.layout.disco);layoutRevision++;canvas.dataset.appliedLayout=JSON.stringify(sceneLayout);setQuality(m.quality);if(baseMapGrades)gradeFrame(printPass,{});detailCacheKey='';backCacheKey='';},
  palette(m){baseMapGrades=structuredClone(m.grades);for(const [key,value]of Object.entries(m.print))if(key in printPass.settings)printPass.set(key,value);for(const [region,grade]of Object.entries(m.grades))for(const [key,value]of Object.entries(grade))printPass.setGrade(region,key,value);gradeFrame(printPass,{});syncStyle();syncGradeUI();},
  command(m){if(m.command==='detail')setView(true);if(m.command==='wide')setView(false);if(m.command==='zoom')setView(!close);if(m.command==='motion'&&paused!==m.paused)toggleMotion();}
 });
-init();
+await init();
+}

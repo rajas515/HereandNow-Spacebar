@@ -34,11 +34,11 @@ function save(){try{localStorage.setItem(storageKey,JSON.stringify(title.setting
 for(const control of controls)control.oninput=()=>{title.settings[control.dataset.setting]=control.type==='checkbox'?control.checked:control.type==='range'?Number(control.value):control.value;sync();save();};
 document.querySelector('#reset').onclick=()=>{title.settings={...DEFAULT_SETTINGS};sync();save();};sync();play.textContent=title.paused?'Play':'Pause';
 const download=document.querySelector('#download'),status=document.querySelector('#export-status');
-download.onclick=async()=>{download.disabled=true;download.textContent='Preparing MP4…';try{const video=await downloadLoop(title,p=>{status.textContent=`Rendering full loop… ${p}%`;});status.textContent=`MP4 downloaded / ${(video.size/1000000).toFixed(1)} MB / 1080p / 30 fps`;}catch(error){status.textContent=error.message;}finally{download.disabled=false;download.textContent='Download full loop · MP4';}};
+download.onclick=async()=>{download.disabled=true;download.textContent='Preparing MP4â€¦';try{const video=await downloadLoop(title,p=>{status.textContent=`Rendering full loopâ€¦ ${p}%`;});status.textContent=`MP4 downloaded / ${(video.size/1000000).toFixed(1)} MB / 1080p / 30 fps`;}catch(error){status.textContent=error.message;}finally{download.disabled=false;download.textContent='Download full loop · MP4';}};
 if(new URLSearchParams(location.search).has('clean'))document.body.classList.add('clean');
 play.onclick=()=>{title.paused=!title.paused;play.textContent=title.paused?'Play':'Pause'};
 document.querySelector('#restart').onclick=()=>{title.replay();play.textContent='Pause'};
 slider.oninput=()=>{title.threshold=Number(slider.value)/255;play.textContent='Play'};
 title.addEventListener('thresholdchange',e=>{slider.value=Math.round(e.detail*255);output.value=slider.value});
 addEventListener('keydown',e=>{if(e.key.toLowerCase()==='h')document.body.classList.toggle('clean')});
-</script></body></html>
+</script><script type="module" src="../shared/title-map.js"></script></body></html>

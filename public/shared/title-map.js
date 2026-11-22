@@ -1,0 +1,7 @@
+import {installMapBridge} from './map-bridge.js';
+if(parent!==window){
+ document.body.classList.add('clean');const style=document.createElement('style');style.textContent='html,body{margin:0!important;padding:0!important;overflow:hidden!important;background:#1a1d4a!important}grave-title{height:100vh!important;width:100vw!important}header,footer,.settings{display:none!important}';document.head.append(style);
+ await customElements.whenDefined('grave-title');const title=document.querySelector('grave-title');title.setAttribute('transparent','');
+ const id=location.pathname.split('/').filter(Boolean).at(-1);let visible=false,paused=false;title._mapVisible=false;
+ installMapBridge({viewport:m=>{visible=m.visible!==false;title._mapVisible=visible;},command:m=>{if(m.command==='motion'){paused=!!m.paused;title.paused=paused;}},layout:m=>{title._mapFps=m.quality?.fps||40;title._mapPixelRatio=m.quality?.pixelRatio||1;const color=m.layout?.[id]?.stack?.color||{};const exposure=Math.pow(2,Math.max(-2,Math.min(2,(color.exposure||0)+(color.value||0))));const saturation=Math.max(0,color.saturation??1);title.style.filter=`brightness(${exposure}) contrast(${color.contrast??1}) saturate(${saturation})`;},palette:m=>{title.settings={...title.settings,paper:m.print?.paper||title.settings.paper,ink:m.print?.inkA||title.settings.ink,accent:m.print?.inkB||title.settings.accent,riso:m.print?.riso??title.settings.riso,wobble:m.print?.wobble??title.settings.wobble};}});
+}

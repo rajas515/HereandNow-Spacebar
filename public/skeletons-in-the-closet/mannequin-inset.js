@@ -1,9 +1,9 @@
 import * as THREE from '../shared/vendor/three.module.js';
 import {PrintPass} from '../shared/print-pass.js';
 import {installComposition} from '../shared/cutout/composition.js';
-export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping){
+export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,createRenderer=options=>new THREE.WebGLRenderer(options)){
  const canvas=document.createElement('canvas');canvas.id='mannequin-inset';canvas.setAttribute('aria-label','Detail view of the mannequin through the studio window');stage.append(canvas);
- const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'low-power'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.localClippingEnabled=true;
+ const renderer=createRenderer({canvas,antialias:true,alpha:true,powerPreference:'low-power'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.localClippingEnabled=true;
  const pass=new PrintPass(renderer);installComposition(pass);pass.normalMaterials=mainPass.normalMaterials;
  const restCamera=mainCamera.clone();restCamera.position.set(-.033,7.146,.096);restCamera.lookAt(.318,0,.106);restCamera.updateMatrixWorld(true);
  const anchor=new THREE.Vector3(-2.7,.7,1.6);

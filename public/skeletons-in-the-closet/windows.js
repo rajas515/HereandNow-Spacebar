@@ -1,9 +1,9 @@
 import * as THREE from '../shared/vendor/three.module.js';
-import {GLTFLoader} from '../shared/vendor/GLTFLoader.js';
+import {gltfLoader} from '../shared/gltf.js';
 import {createDaylight} from './daylight.js';
 
 async function captureStudio(renderer){
- const room=(await new GLTFLoader().loadAsync('./assets/adjacent-aligned.glb?v=combined1')).scene;
+ const room=(await gltfLoader().loadAsync(new URL('./assets/adjacent-aligned.glb?v=draco1',import.meta.url).href)).scene;
  const scene=new THREE.Scene();scene.background=new THREE.Color('#c5c8be');
  const daylight=createDaylight({windowZ:-10.9});
  room.traverse(o=>{if(o.isMesh){o.material.side=THREE.DoubleSide;o.material.roughness=.85;daylight.apply(o.material);o.castShadow=true;o.receiveShadow=true;if(o.name==='window-portals')o.visible=false;}});scene.add(room);
@@ -29,7 +29,7 @@ function windowMaterial(cube){
  material.userData.foliage=true;return material;
 }
 export async function createWindowBackgrounds(renderer){
- const [studio,image]=await Promise.all([captureStudio(renderer),new THREE.ImageLoader().loadAsync('../disco/assets/garden.jpg')]);
+ const [studio,image]=await Promise.all([captureStudio(renderer),new THREE.ImageLoader().loadAsync(new URL('../disco/assets/garden.webp?v=webp1',import.meta.url).href)]);
  const gardenFace=document.createElement('canvas');gardenFace.width=gardenFace.height=512;gardenFace.getContext('2d').drawImage(image,0,0,512,512);
  const garden=new THREE.CubeTexture([gardenFace,gardenFace,gardenFace,gardenFace,gardenFace,gardenFace]);garden.colorSpace=THREE.SRGBColorSpace;garden.needsUpdate=true;
  return {garden:windowMaterial(garden),studio:windowMaterial(studio)};

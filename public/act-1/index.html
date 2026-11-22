@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1a1d4a"><meta name="description" content="In the life of — an overhead studio, rendered as a living paper study.">
+<title>Take it to the grave — Act I</title>
+<link rel="stylesheet" href="./walkthrough.css">
+</head>
+<body><div class="scroll-shell">
+<header><a href="./" aria-label="Restart the studio study">green hour <span>↗</span></a><span class="edition">SCROLL STUDY / 03</span></header>
+<main>
+<div class="heading"><h1>in the life of</h1><span>scroll through a room, in the middle of things.</span></div>
+<div id="viewport"><canvas id="scene" tabindex="0" aria-label="Overhead view of a busy design studio. Scroll down to advance; scroll up to reverse."></canvas><div id="loading" role="status">unfolding the studio<span id="loadProgress">· · ·</span></div><p id="error" role="alert" hidden>The studio could not load. <button id="retry">Try again</button></p></div>
+<footer><span class="caption" id="caption">SCROLL TO EXPLORE ↓</span><nav aria-label="Scene controls"><button id="wide" aria-pressed="true" aria-label="Start of camera path">Start</button><button id="table-view" aria-pressed="false" aria-label="Inside the studio">Studio</button><i></i><button id="print" aria-pressed="true">Print</button><button id="material" aria-pressed="false">Original</button><i></i><button id="motion" aria-pressed="false" aria-label="Pause scroll animation">Pause</button><button id="settings" aria-expanded="false" aria-controls="controls">Adjust <span>＋</span></button></nav></footer>
+<section id="controls" aria-label="Scene adjustments" hidden><label>Ink texture<input id="riso" type="range" min="0" max="1" step=".01" value=".7"></label><label>Drawing<input id="sketch" type="range" min="0" max="1" step=".01" value=".5"></label><label>Light<input id="exposure" type="range" min="-2" max="2" step=".01" value="0"></label><label>Fisheye<input id="lens" type="range" min="0" max="1.2" step=".01" value="0" title="0 is unwarped; increase for barrel distortion"></label><label>Width<input id="width" type="range" min=".9" max="1.3" step=".01" value="1"></label><label>Quality<select id="quality"><option value="balanced">Balanced</option><option value="high">Fine</option><option value="low">Light</option></select></label><button id="reset">Reset study</button><output id="metrics"></output></section>
+</main></div>
+<nav id="camera-modes" aria-label="Camera movement mode"><select id="intro-choice" aria-label="Opening graphic"><option value="calligraphy">Calligraphy</option><option value="serif">Serif</option></select><button id="camera-scroll" aria-pressed="true">Scroll</button><button id="camera-auto" aria-pressed="false">Auto</button><button id="camera-pause" hidden>Pause</button></nav>
+<script type="module">import {mount} from './walkthrough.js';import {pageHost} from '../shared/card-host.js';mount(pageHost());</script>
+</body></html>
+
+

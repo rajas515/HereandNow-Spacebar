@@ -58,6 +58,6 @@
 <div id="loading" role="status" aria-label="Loading scene"><span class="loading-orbit" aria-hidden="true"></span></div>
 <div id="error" hidden role="alert" aria-label="The scene could not load. WebGL2 support is required."><button class="icon-button" id="retry" aria-label="Reload scene"><svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></svg></button></div>
 </main>
-<script type="module" src="./scene.js"></script>
+<script type="module">import {mount} from './scene.js';import {pageHost} from '../shared/card-host.js';mount(pageHost());</script>
 </body>
 </html>

@@ -1,0 +1,57 @@
+/* Same paper and UI colours as the combined map (map/map.css). */
+:root{--paper:#1a1d4a;--ui:#b9bfff;--ui-line:#7b83d866;--pink:#ff9ccf;--muted:#9496bd}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);overscroll-behavior:none}
+#viewport{position:fixed;inset:0;overflow:hidden;outline:none;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#viewport.dragging{cursor:grabbing}
+#world{position:absolute;inset:0;transform-origin:0 0;will-change:transform;visibility:hidden}   /* shown once the first frame has placed everything */
+#world.placed{visibility:visible}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.node{position:absolute;width:100vw;height:100vh;contain:layout style;pointer-events:none}
+.frame{position:absolute;left:0;width:100%;pointer-events:auto;contain:layout}   /* card document (shadow root), where the iframe used to be */
+.placeholder{position:absolute;inset:20%;display:grid;place-content:center;text-align:center;color:var(--muted);font:20px Georgia,serif}
+.node[data-ready] .placeholder{display:none}
+.node.act .placeholder{display:none}   /* the page lands straight on Act I's sequence */
+
+/* Corner HUD, herenowtest-style: site top-left, where you are bottom-left, map bottom-right. */
+.hud{position:fixed;z-index:5;margin:0;font:11px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--ui)}
+.hud a{color:inherit;text-decoration:none}
+.hud-top{top:16px;left:22px;right:22px;display:flex;justify-content:space-between;pointer-events:none}
+.hud-top a{pointer-events:auto}
+.hud-now{left:22px;bottom:22px;display:grid;gap:4px;pointer-events:none}
+.hud-now strong{font:20px Georgia,serif;text-transform:none;letter-spacing:0;color:var(--pink)}
+.hud-nav{right:22px;bottom:22px;display:grid;gap:8px;justify-items:end}
+.nav-buttons{display:flex;border:1px solid var(--ui-line);border-radius:16px;background:#1a1d4aeb}
+.nav-buttons button{font:inherit;color:inherit;background:none;border:0;padding:7px 11px;cursor:pointer}
+.nav-buttons button[aria-pressed=true]{color:var(--pink)}
+#minimap{width:120px;height:150px;border:1px solid var(--ui-line);border-radius:12px;background:#1a1d4aeb;cursor:pointer}
+#minimap rect.room{fill:none;stroke:var(--ui);stroke-opacity:.45}
+#minimap rect.room.active{fill:var(--pink);fill-opacity:.25;stroke:var(--pink);stroke-opacity:1}
+#minimap rect.view{fill:none;stroke:#ffe0ef;stroke-dasharray:2 2}
+/* During Act I the opening owns the screen: map controls step aside. */
+.hud-nav{transition:opacity .4s}
+.in-act1 .hud-nav{opacity:0;pointer-events:none}
+
+/* The hint under the curatorial note once the opening has played. */
+.hud-hint{left:50%;bottom:28px;transform:translateX(-50%);opacity:0;transition:opacity .8s;pointer-events:none}
+.hud-hint span{display:inline-block;margin-left:6px;color:var(--pink);animation:hint-bob 1.6s ease-in-out infinite}
+.waiting-at-note .hud-hint{opacity:1}
+@keyframes hint-bob{50%{transform:translateY(4px)}}
+@media (prefers-reduced-motion:reduce){.hud-hint span{animation:none}}
+
+/* First arrival in Act II: a hand presses, drags across and lets go, once per visit. */
+.hud-pan-hint{left:50%;top:50%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:14px;padding:22px 26px 18px;border-radius:18px;background:#1a1d4acc;text-transform:none;letter-spacing:0;font:15px Georgia,serif;color:#e5dce9;opacity:0;transition:opacity .6s;pointer-events:none}
+.show-pan-hint .hud-pan-hint{opacity:1}
+.hud-pan-hint svg{width:52px;height:52px;fill:none;stroke:var(--pink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:pan-hand 2.6s ease-in-out infinite}
+@keyframes pan-hand{0%,12%{transform:translateX(0) scale(1)}20%{transform:translateX(0) scale(.86)}45%{transform:translateX(-26px) scale(.86)}70%{transform:translateX(26px) scale(.86)}82%{transform:translateX(0) scale(.86)}90%,100%{transform:translateX(0) scale(1)}}
+@media (prefers-reduced-motion:reduce){.hud-pan-hint svg{animation:none}}
+
+/* Arrange mode (/exhibition/?arrange): every card box is grabbable and outlined. */
+.arranging .frame,.arranging .node .placeholder{pointer-events:auto;cursor:move;outline:1px dashed #ff9ccf88;outline-offset:-1px}
+.arranging .node.selected .frame,.arranging .node.selected .placeholder{outline:2px solid var(--pink)}
+.hud-arrange{top:42px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;padding:6px 8px 6px 14px;border:1px solid var(--ui-line);border-radius:18px;background:#1a1d4aeb;text-transform:none;letter-spacing:0}
+.hud-arrange button{font:inherit;color:inherit;background:none;border:1px solid var(--ui-line);border-radius:12px;padding:5px 10px;cursor:pointer}
+.hud-arrange button:hover{color:var(--pink)}
+@media (max-width:650px){
+  .hud-top,.hud-now{left:12px}.hud-top{right:12px}.hud-nav{right:12px;bottom:12px}.hud-now{bottom:12px;max-width:calc(100vw - 130px)}
+  .hud-now strong{font-size:16px}#minimap{width:84px;height:104px}
+}

@@ -1,16 +1,24 @@
+import {applyMapCamera} from '../shared/map-camera.js';
+import {applyMapAppearance} from '../shared/map-appearance.js';
 import * as THREE from '../shared/vendor/three.module.js';
-import {GLTFLoader} from '../shared/vendor/GLTFLoader.js';
+import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
-import {installMapBridge} from '../shared/map-bridge.js';
 import {bakePerimeter} from '../shared/cutout/bake-static.js';
 import {installComposition,foliageMaterial,buildWindowApertures,WIDE_OUTLINE} from '../shared/cutout/composition.js';
 import {createStageClipping} from '../shared/cutout/stage-clipping.js';
 import {addAtmosphere} from '../shared/cutout/atmosphere.js';
 import {mergeGeometries} from '../shared/vendor/BufferGeometryUtils.js';
 
-const $=s=>document.querySelector(s),canvas=$('#scene'),stage=$('#stage');
-const embedded=parent!==window;
-if(embedded)document.documentElement.classList.add('map-embedded');
+const assetUrl=path=>new URL(path,import.meta.url).href;
+
+// Runs on the standalone page (pageHost) or inside the exhibition world.
+export async function mount(host){
+let mapViewportState={};
+let mapColor={},mapPrint={},mapBridge;
+
+const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage');
+const embedded=host.embedded;
+if(embedded)host.documentElement.classList.add('map-embedded');
 const KEY='green-hour-in-the-life-of-v1';
 const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.24,compositionRevision:3,quality:'balanced'};
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}');}catch{}
@@ -45,7 +53,7 @@ function setView(value){
   $('#wide').setAttribute('aria-pressed',String(!value));$('#table-view').setAttribute('aria-pressed',String(value));
   $('.caption').textContent=value?'02 / ON THE TABLE':'01 / THE STUDIO';
   canvas.setAttribute('aria-label',value?'Close overhead view of the worktables. Click or press Escape to return to the room.':'Overhead studio. Click the worktables or press Enter to move closer.');
-  dirty=true;wake();
+  mapBridge?.state(value?1:0);dirty=true;wake();
 }
 function tableHit(event){
   const r=canvas.getBoundingClientRect();
@@ -73,7 +81,8 @@ function configure(){
   renderer.toneMappingExposure=1.1*Math.pow(2,Number(settings.exposure));
   $('#print').setAttribute('aria-pressed',settings.mode==='print');$('#material').setAttribute('aria-pressed',settings.mode==='material');
   for(const key of ['riso','sketch','exposure','lens','width','quality'])$('#'+key).value=settings[key];
-  dirty=true;wake();
+  applyMapAppearance(pass,mapColor,mapPrint);
+ dirty=true;wake();
 }
 function resize(){
   if(!renderer)return;
@@ -110,6 +119,7 @@ function tick(now){
   const cameraMix=THREE.MathUtils.smoothstep(viewMix,.18,1);
   camera.position.copy(base);camera.position.y=THREE.MathUtils.lerp(base.y,2.22,cameraMix);
   camera.fov=wideFov;camera.updateProjectionMatrix();
+  if(embedded)applyMapCamera(camera,pan,mapViewportState,stage.clientWidth,stage.clientHeight,.75,4);
   const parallax=THREE.MathUtils.lerp(.11,.025,viewMix);
   camera.position.x+=smooth.y*parallax+pan.y;
   camera.position.z+=smooth.x*parallax-pan.x;
@@ -127,7 +137,8 @@ function tick(now){
     canvas.dataset.drawCalls=String(renderer.info.render.calls);canvas.dataset.triangles=String(stats.triangles);
   }
   drawCount++;if(now-perfStart>1200){$('#metrics').value=`${Math.round(drawCount*1000/(now-perfStart))} fps · ${canvas.dataset.drawCalls} draws · ${Math.round(Number(canvas.dataset.triangles)/1000)}k triangles`;drawCount=0;perfStart=now;}
-  canvas.dataset.state='ready';canvas.dataset.mode=settings.mode;canvas.dataset.renderedSettings=JSON.stringify(settings);canvas.dataset.frames=String(Number(canvas.dataset.frames||0)+1);canvas.dataset.presence=String(presence);
+  if(embedded){canvas.dataset.renderedMapGrades=JSON.stringify(pass.grades);canvas.dataset.mapCamera=JSON.stringify({pan:pan.toArray(),view:camera.view});}
+ canvas.dataset.state='ready';canvas.dataset.mode=settings.mode;canvas.dataset.renderedSettings=JSON.stringify(settings);canvas.dataset.frames=String(Number(canvas.dataset.frames||0)+1);canvas.dataset.presence=String(presence);
   canvas.dataset.view=close?'table':'wide';canvas.dataset.viewMix=viewMix.toFixed(4);canvas.dataset.outline=JSON.stringify(WIDE_OUTLINE);canvas.dataset.foliage=String(!!gardenMaterial);
   if(stageClipping)canvas.dataset.renderedClipping=JSON.stringify(stageClipping.state);
   canvas.dataset.clipPhase=viewMix>.35&&viewMix<.70?'middle':viewMix===1?'close':viewMix===0?'wide':'moving';
@@ -141,11 +152,11 @@ function portalMaterial(){return new THREE.ShaderMaterial({uniforms:{garden:{val
 });}
 async function init(){
   try{
-    renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+    renderer=host.createRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     renderer.info.autoReset=false;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     renderer.outputColorSpace=THREE.SRGBColorSpace;pass=new PrintPass(renderer);installComposition(pass);
-    const [gltf,garden,foliage,paperEdges]=await Promise.all([new GLTFLoader().loadAsync('./assets/studio.glb'),new THREE.CubeTextureLoader().loadAsync(['px','nx','py','ny','pz','nz'].map(f=>`./assets/garden-${f}.png`)),new THREE.TextureLoader().loadAsync('../disco/assets/garden.jpg'),fetch('./assets/paper-edges.json').then(r=>{if(!r.ok)throw Error('Paper contours could not load');return r.json();})]);
+    const [gltf,garden,foliage,paperEdges]=await Promise.all([gltfLoader().loadAsync(assetUrl('./assets/studio.glb?v=draco1')),new THREE.CubeTextureLoader().loadAsync(['px','nx','py','ny','pz','nz'].map(f=>assetUrl(`./assets/garden-${f}.webp?v=webp1`))),new THREE.TextureLoader().loadAsync(assetUrl('../disco/assets/garden.webp?v=webp1')),fetch(assetUrl('./assets/paper-edges.json')).then(r=>{if(!r.ok)throw Error('Paper contours could not load');return r.json();})]);
     foliage.wrapS=foliage.wrapT=THREE.MirroredRepeatWrapping;foliage.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());gardenMaterial=foliageMaterial(foliage);
     cube=garden;cube.colorSpace=THREE.SRGBColorSpace;room=gltf.scene;
     room.traverse(o=>{if(!o.isMesh)return;
@@ -199,10 +210,6 @@ canvas.addEventListener('pointerleave',()=>{pointer.set(0,0);wake();});
 document.addEventListener('visibilitychange',()=>{lastDraw=0;dirty=true;wake();});
 new ResizeObserver(resize).observe(stage);
 new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;dirty=true;wake();}).observe(stage);
-installMapBridge({viewport:m=>{visible=m.visible!==false;presence=m.presence??1;dirty=true;wake();},palette:m=>{if(pass)for(const [k,v] of Object.entries(m.print||{}))if(k in pass.settings)pass.set(k,v);dirty=true;wake();},command:m=>{if(m.command==='motion'){paused=!!m.paused;motionButton();}if(m.command==='wide')setView(false);if(m.command==='zoom')setView(!close);dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};if(renderer)resize();}});
-init();
-
-
-
-
-
+mapBridge=host.installMapBridge({viewport:m=>{visible=m.visible!==false;presence=m.presence??1;mapViewportState=m;dirty=true;wake();},palette:m=>{mapPrint=m.print||{};configure();dirty=true;wake();},command:m=>{if(m.command==='motion'){paused=!!m.paused;motionButton();}if(m.command==='wide')setView(false);if(m.command==='zoom')setView(!close);dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};mapColor=m.layout?.['in-the-life-of']?.stack?.color||{};configure();if(renderer)resize();},dragEnd:()=>{pointerDown=null;},click:e=>{if(close||tableHit(e))setView(!close);pointerDown=null;}});
+await init();
+}
