@@ -157,7 +157,7 @@ try {
   const room = new THREE.Group(), props = new THREE.Group();
   room.name = 'room';
   props.name = 'table-props';
-  const byMaterial = new Map();
+  const byMaterial = new Map(), propsByMaterial = new Map();
   const meshes = [];
   model.traverse(o => { if (o.isMesh) meshes.push(o); });
   for (const mesh of meshes) {
@@ -165,26 +165,23 @@ try {
     while (top.parent && top.parent !== model) top = top.parent;
     const group = PROPS.test(mesh.name) || PROPS.test(top.name) ? 'furniture' : groupFor(top.name + ' ' + mesh.name);
     const material = forGroup(restyle(mesh.material), group);
-    if (PROPS.test(mesh.name) || PROPS.test(top.name)) {
-      const prop = new THREE.Mesh(mesh.geometry, material);
-      prop.userData.cutGroup = 'furniture';
-      mesh.matrixWorld.decompose(prop.position, prop.quaternion, prop.scale);
-      prop.name = top.name;
-      prop.castShadow = prop.receiveShadow = true;
-      props.add(prop);
-      continue;
-    }
-    const list = byMaterial.get(material) || [];
+    // The table props are merged too (each playing card is three meshes, which made the house of
+    // cards alone ~40 draws per pass), but into their own group, so the interaction to come can
+    // rebuild them as separate pieces from the model.
+    const target = PROPS.test(mesh.name) || PROPS.test(top.name) ? propsByMaterial : byMaterial;
+    const list = target.get(material) || [];
     list.push(plain(mesh.geometry, mesh.matrixWorld));
-    byMaterial.set(material, list);
+    target.set(material, list);
   }
-  for (const [material, list] of byMaterial) {
-    const merged = new THREE.Mesh(mergeGeometries(list), material);
-    merged.userData.cutGroup = furnitureMaterials.has(material) ? 'furniture' : 'shell';
-    const isGlass = material.userData.look?.group === 'glass';   // light passes the frosted panes
-    merged.castShadow = !isGlass;
-    merged.receiveShadow = !isGlass;
-    room.add(merged);
+  for (const [map, parent] of [[byMaterial, room], [propsByMaterial, props]]) {
+    for (const [material, list] of map) {
+      const merged = new THREE.Mesh(mergeGeometries(list), material);
+      merged.userData.cutGroup = furnitureMaterials.has(material) ? 'furniture' : 'shell';
+      const isGlass = material.userData.look?.group === 'glass';   // light passes the frosted panes
+      merged.castShadow = !isGlass;
+      merged.receiveShadow = !isGlass;
+      parent.add(merged);
+    }
   }
   scene.remove(model);
   scene.add(room, props);
@@ -330,6 +327,7 @@ try {
     camera.updateMatrixWorld();
   }
 
+  let frames = 0, fpsStart = 0;
   function wake() { if (!raf && visible && mapShown && !document.hidden) raf = requestAnimationFrame(draw); }
   function draw(time) {
     raf = 0;
@@ -343,7 +341,14 @@ try {
     cut.update(wideAnchor, viewMix);
     applyLook();
     frameCamera(dt);
+    if (tunable) { renderer.info.autoReset = false; renderer.info.reset(); }
     pass.render(scene, camera, time / 1000);
+    if (tunable) {   // standalone diagnostics for the performance audit
+      frames++;
+      if (time - fpsStart > 1000) { canvas.dataset.fps = String(Math.round(frames * 1000 / (time - fpsStart))); frames = 0; fpsStart = time; }
+      canvas.dataset.drawCalls = String(renderer.info.render.calls);
+      canvas.dataset.triangles = String(renderer.info.render.triangles);
+    }
     canvas.dataset.state = 'ready';
     const settling = orbitNow.distanceToSquared(orbitGoal) > 1e-6;
     if (!reduced || active || settling) wake();

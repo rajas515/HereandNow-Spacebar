@@ -23,6 +23,9 @@ outside the repo.
   stepped with the zoom; the camera push starts once they have entered the room. They stop on the close
   annotation, measured into the room (`CLOSE_PLANES`): the room shell takes them tight, the furniture
   around the table a looser set, so the stool and the bench end stay whole past the shell's cut.
+  Each plane starts at the edge of what the wide view keeps (not far outside the room), so the sweep
+  moves in step with the zoom from its first frame. In the wide view the partition is cut by a straight
+  vertical plane through the purple door (`right`), not by the mask.
   Colour, normal/depth and shadow passes share the cut. Card-local; the shared cutout is untouched.
 - **Built like the other room cards (disco, Will):** the shared print pass; the model's own
   materials made matte; a warm sun through the partition with a 2048 soft shadow map (cached,
@@ -31,9 +34,12 @@ outside the repo.
 - **Purple door** (from the reference photo), added by the export in the partition bay nearest the
   view: lavender leaf, lever handle on the left, overhead closer, frosted transom light above; the
   two low rails no longer cross that bay. Brightness: `door`.
-- The room is merged per material (~20 draw calls). The table props (house-of-cards castle,
-  loose cards, deck, mug, saucer, ashtray, wallet) stay separate objects for the coming
-  interaction, and print in the pink accent ink (like the disco ball) so they read as the focus.
+- **Weight:** 0.7 MB model (Draco, 512 px WebP textures), ~20k triangles drawn, 69 draw calls per
+  frame across the colour and normal passes (was 151 before the props were merged). The room and the
+  table props are each merged per material; the props (house-of-cards castle, loose cards, deck, mug,
+  saucer, ashtray, wallet) stay their own group for the coming interaction and print in the pink
+  accent ink (like the disco ball). The 2048 shadow map redraws only while the cut moves or tuning
+  changes. On the standalone page the canvas reports `data-draw-calls`, `data-triangles`, `data-fps`.
 - Soft orbit about the point looked at (`orbit`): the exhibition pan turns the view, the pointer a little.
 - Look controls in `TUNING` for the final colour audit: `riso`, `sketch`, `light`, `sun`, grades for
   the room, the frosted glass and the table props, and material brightness (`walls`, `floor`, `wood`,

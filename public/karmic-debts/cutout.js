@@ -17,22 +17,26 @@ import * as THREE from '../shared/vendor/three.module.js';
 // Wide outline, image pixels of a 1.4 card. Points beyond the image carry it along the frame edge.
 export const WIDE_OUTLINE = {width: 1001, height: 710, points: [
   [20, 80], [95, 92], [278, 95], [270, 40], [258, -80], [415, -80], [420, 2], [560, 22], [668, 55],
-  [760, 40], [845, 2], [845, -80], [960, -80], [958, 15], [935, 90], [918, 135], [990, 122], [1090, 122],
-  [1090, 320], [975, 400], [950, 480], [930, 580], [915, 668], [830, 610], [740, 550], [600, 590],
+  // Right of here the mask stays open: the straight 'door' plane cuts the partition (CLOSE_PLANES.right).
+  [760, 40], [845, 2], [845, -80], [1300, -80], [1300, 780], [915, 668], [830, 610], [740, 550], [600, 590],
   [480, 612], [472, 652], [410, 655], [400, 690], [402, 790], [300, 790], [300, 640], [270, 610],
   [215, 600], [190, 625], [170, 652], [162, 640], [150, 560], [145, 450], [80, 455], [-6, 465],
   [95, 385], [100, 340], [85, 210], [40, 110],
 ]};
 
-// Close cut planes, measured from the close annotation (its outline raycast into the room from the
-// close camera), metres, y up. Kept where normal · p + constant >= 0.
+// Cut planes, metres, y up; kept where normal · p + constant >= 0.
+// wide: where each plane stands in the wide view, just at the edge of what that view keeps, so the
+//   sweep is visible from its first step (starting far outside the room left the first part of the
+//   zoom with nothing moving, then a late rush: the timing mismatch). The right plane is also the
+//   straight vertical cut through the purple door in the wide view.
+// shell / furniture: the close annotation, raycast into the room from the close camera.
 const FRONT = new THREE.Vector3(.46, 0, -.89).normalize();   // across the floor in front of the table
 export const CLOSE_PLANES = {
-  //            wide (out of the room)   shell (tight)   furniture (loose)
-  left:  {normal: new THREE.Vector3(1, 0, 0),  wide: 12, shell: .05,  furniture: .45},   // x >= -c: at the column
-  top:   {normal: new THREE.Vector3(0, -1, 0), wide: 12, shell: 1.55, furniture: 1.6},   // y <= c: across the walls
-  right: {normal: new THREE.Vector3(0, 0, -1), wide: 12, shell: .45,  furniture: 1.2},   // z <= c: the partition's near end
-  front: {normal: FRONT,                       wide: 12, shell: -.38, furniture: .5},    // the floor before the table (furniture: the whole round top)
+  //            wide (room edge)          shell (tight)   furniture (loose)
+  left:  {normal: new THREE.Vector3(1, 0, 0),  wide: 2.35, shell: .05,  furniture: .45},   // x >= -c: at the column
+  top:   {normal: new THREE.Vector3(0, -1, 0), wide: 3.35, shell: 1.55, furniture: 1.6},   // y <= c: across the walls
+  right: {normal: new THREE.Vector3(0, 0, -1), wide: 1.8,  shell: .45,  furniture: 1.2},   // z <= c: through the door, then the partition's near end
+  front: {normal: FRONT,                       wide: 2.9,  shell: -.38, furniture: .5},    // the floor before the table (furniture: the whole round top)
 };
 // When each plane travels during the zoom (fractions of it), staggered like In the Life Of's.
 const PHASES = {right: [0, .9], left: [.06, .95], front: [.1, 1], top: [.16, 1]};
