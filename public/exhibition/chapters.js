@@ -19,5 +19,5 @@ export const CHAPTERS = [
   {n: '07', title: 'The Auction', act: 'Act II · The Wake', tone: 'Playful, competitive, sentimental', card: null, x: -39.1, y: 179.1, scale: 1.01},
   {n: '08', title: 'Karmic Debts', act: 'Act III · The Afterlife', tone: 'Contemplative, unresolved', card: null, x: -55, y: 385, scale: 0.9},
   {n: '09', title: 'Prayers for the Next Life', act: 'Act III · The Afterlife', tone: 'Hopeful, intimate, bittersweet', card: null, x: 55, y: 450, scale: 0.9},
-  {n: '10', title: 'Closing Statement / Reflections', act: 'Act III · The Afterlife', tone: 'Reflective, conclusive, quietly hopeful', card: null, x: 0, y: 535, scale: 0.9},
+  {n: '10', title: 'Closing Statement / Reflections', act: 'Act III · The Afterlife', tone: 'Reflective, conclusive, quietly hopeful', card: 'closing-statement', x: 0, y: 535, scale: 0.9},
 ];
