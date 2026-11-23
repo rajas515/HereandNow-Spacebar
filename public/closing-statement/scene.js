@@ -1,6 +1,7 @@
 import * as THREE from '../shared/vendor/three.module.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
+import {loadTuning, tuningPanel} from '../shared/tuning-panel.js';
 
 // Closing Statement / Reflections: the floating mirror composition from
 // "Mirror Composition.blend" (tools/export-reflections.py), seen through its reference camera.
@@ -22,6 +23,14 @@ export const TUNING = {
   arrowFloat: 1.77,                     // how far the arrow hovers in front of the glass: 0 = image exactly
                                         // under the cursor, more = tilted mirrors shift it further off
   orbit: 20,                            // soft orbit range in degrees (map pan and pointer turn the view)
+  // Look (for the final colour audit). Print: riso grain/dots, sketch lines. Light scales the lamps,
+  // sky is what the mirrors see beyond the composition.
+  riso: .62, sketch: .46, light: 1, sky: 1,
+  // Print-pass grades: frames = the mirrors' frames, glass = the reflections (pink accent ink).
+  framesExposure: .25, framesContrast: 1.05, framesShadows: .05, framesHighlights: 0, framesValue: 0,
+  glassExposure: -.35, glassContrast: 1.35, glassShadows: .05, glassHighlights: 0, glassValue: 0,
+  // Material brightness (multiplies the frames' colour).
+  frameTone: 1,
 };
 const TUNE_KEY = 'closing-statement-tuning-v2';
 const RANGES = {
@@ -29,7 +38,13 @@ const RANGES = {
   moveX: [-6, 6, .05], moveY: [-6, 6, .05], moveZ: [-6, 6, .05],
   scale: [.3, 2.5, .01], zoom: [.4, 2.5, .01],
   arrowSize: [.1, 2, .01], arrowFloat: [0, 2, .01], orbit: [0, 25, .5],
+  riso: [0, 1, .01], sketch: [0, 1, .01], light: [0, 3, .01], sky: [0, 4, .01],
+  framesExposure: [-2, 2, .01], framesContrast: [0, 3, .01], framesShadows: [-1, 1, .01], framesHighlights: [-1, 1, .01], framesValue: [-1, 1, .01],
+  glassExposure: [-2, 2, .01], glassContrast: [0, 3, .01], glassShadows: [-1, 1, .01], glassHighlights: [-1, 1, .01], glassValue: [-1, 1, .01],
+  frameTone: [0, 3, .01],
 };
+const SECTIONS = {rotateX: 'Framing', arrowSize: 'Cursor & motion', riso: 'Look', framesExposure: 'Frames grade',
+  glassExposure: 'Glass grade', frameTone: 'Material brightness'};
 
 export async function mount(host) {
 const canvas = host.$('#scene');
@@ -39,18 +54,16 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(51.8, 1.6446, .1, 80);
 camera.layers.enable(0);
 
-const tuning = {...TUNING};
 const tunable = !host.embedded && !host.world;
-if (tunable) {
-  try { Object.assign(tuning, JSON.parse(localStorage.getItem(TUNE_KEY) || '{}')); } catch {}
-}
+const tuning = tunable ? loadTuning(TUNE_KEY, TUNING) : {...TUNING};
 
 // ---- what the mirrors see beyond the composition: a dim violet sky with one soft lamp ----
 function environment() {
   const material = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false,
     vertexShader: `varying vec3 dir;void main(){dir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-    fragmentShader: `varying vec3 dir;
+    uniforms: {brightness: {value: 1}},
+    fragmentShader: `varying vec3 dir;uniform float brightness;
       void main(){
         float up=dir.y*.5+.5;
         vec3 low=vec3(.012,.014,.05),mid=vec3(.09,.045,.16),high=vec3(.05,.06,.19);
@@ -59,7 +72,7 @@ function environment() {
         c+=vec3(.32,.06,.22)*pow(1.0-abs(dir.y),9.0)*.35;                // pink horizon band
         c+=vec3(1.0,.82,.95)*smoothstep(.985,.997,dot(dir,normalize(vec3(-.35,.9,.25))))*.5; // lamp
         c+=vec3(.5,.55,1.0)*smoothstep(.988,.998,dot(dir,normalize(vec3(.55,.75,-.4))))*.3;
-        gl_FragColor=vec4(c,1.0);
+        gl_FragColor=vec4(c*brightness,1.0);
       }`,
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), material);
@@ -220,11 +233,28 @@ try {
     return busy;
   }
 
-  scene.add(environment());
-  scene.add(new THREE.HemisphereLight('#eee4ef', '#3d3050', 1.4));
+  const sky = environment();
+  scene.add(sky);
+  const hemi = new THREE.HemisphereLight('#eee4ef', '#3d3050', 1.4);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff0da', 2.4);
   sun.position.set(-4, 9, 3);
   scene.add(sun);
+
+  // ---- look: print grades, frame brightness, light and sky, all from tuning ----
+  const GRADES = {frames: 'room', glass: 'ball'};
+  const frameBase = frame.color.clone(), edgeBase = edge.color.clone();
+  function applyLook() {
+    pass.set('riso', tuning.riso);
+    pass.set('sketch', tuning.sketch);
+    for (const [name, region] of Object.entries(GRADES))
+      for (const g of ['Exposure', 'Contrast', 'Shadows', 'Highlights', 'Value']) pass.setGrade(region, g.toLowerCase(), tuning[name + g]);
+    frame.color.copy(frameBase).multiplyScalar(tuning.frameTone);
+    edge.color.copy(edgeBase).multiplyScalar(tuning.frameTone);
+    hemi.intensity = 1.4 * tuning.light;
+    sun.intensity = 2.4 * tuning.light;
+    sky.material.uniforms.brightness.value = tuning.sky;
+  }
 
   // The arrow exists only for the mirrors (layer 1), and only while the pointer is over the card.
   // Each mirror gets it placed for itself (see placeArrow), so its image lands near the cursor.
@@ -408,6 +438,7 @@ try {
     lastDraw = time;
     const springing = settle(dt);
     placeComposition();
+    applyLook();
     frameCamera(dt);
 
     if (pointer.inside) {
@@ -435,10 +466,7 @@ try {
     for (const m of mirrors) m.target.setSize(Math.max(1, Math.round(buffer.x)), Math.max(1, Math.round(buffer.y)));
     wake();
   }
-  if (tunable) tuningPanel(host, tuning, () => {
-    try { localStorage.setItem(TUNE_KEY, JSON.stringify(tuning)); } catch {}
-    wake();
-  });
+  if (tunable) tuningPanel(host, tuning, {defaults: TUNING, ranges: RANGES, sections: SECTIONS, storageKey: TUNE_KEY, changed: wake});
   document.addEventListener('visibilitychange', wake);
   new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; wake(); }).observe(stage);
   new ResizeObserver(resize).observe(stage);
@@ -448,53 +476,4 @@ try {
   console.error(error);
   status.textContent = 'The mirrors could not load. Reload to try again.';
 }
-}
-
-// ---- temporary framing controls (standalone page only) ----
-function tuningPanel(host, tuning, changed) {
-  const panel = document.createElement('details');
-  panel.open = true;
-  panel.style.cssText = 'position:fixed;top:12px;right:12px;z-index:10;width:250px;max-height:calc(100vh - 24px);overflow:auto;background:#1a1d4aee;border:1px solid #8176a1;border-radius:10px;padding:8px 12px;font:12px system-ui,sans-serif;color:#e5d1ea';
-  panel.innerHTML = '<summary style="cursor:pointer;font-weight:600">Tune framing</summary>';
-  const inputs = {};
-  for (const [key, [min, max, step]] of Object.entries(RANGES)) {
-    const row = document.createElement('label');
-    row.style.cssText = 'display:grid;grid-template-columns:1fr 52px;gap:2px 6px;margin:8px 0 0';
-    row.innerHTML = `<span>${key}</span><input type="number" min="${min}" max="${max}" step="${step}" style="width:52px;background:transparent;color:inherit;border:1px solid #45456e;border-radius:4px"><input type="range" min="${min}" max="${max}" step="${step}" style="grid-column:1/3;width:100%">`;
-    const [number, range] = row.querySelectorAll('input');
-    const set = value => {
-      tuning[key] = +value;
-      number.value = range.value = tuning[key];
-      changed();
-    };
-    number.addEventListener('input', () => set(number.value));
-    range.addEventListener('input', () => set(range.value));
-    number.value = range.value = tuning[key];
-    inputs[key] = {number, range};
-    panel.append(row);
-  }
-  const buttons = document.createElement('div');
-  buttons.style.cssText = 'display:flex;gap:6px;margin:12px 0 4px';
-  const button = (label, action) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = label;
-    b.style.cssText = 'flex:1;color:inherit;background:transparent;border:1px solid #8176a1;border-radius:14px;padding:5px 8px;cursor:pointer';
-    b.onclick = action;
-    buttons.append(b);
-    return b;
-  };
-  const copy = button('Copy settings', async () => {
-    const text = JSON.stringify(Object.fromEntries(Object.keys(RANGES).map(k => [k, tuning[k]])), null, 2);
-    try { await navigator.clipboard.writeText(text); copy.textContent = 'Copied'; }
-    catch { prompt('Copy these settings', text); }
-    setTimeout(() => { copy.textContent = 'Copy settings'; }, 1500);
-  });
-  button('Reset', () => {
-    Object.assign(tuning, TUNING);
-    for (const [key, {number, range}] of Object.entries(inputs)) number.value = range.value = tuning[key];
-    changed();
-  });
-  panel.append(buttons);
-  host.body.append(panel);
 }

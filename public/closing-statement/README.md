@@ -24,3 +24,6 @@ mirrors seen through its "Reference composition" camera. `tools/export-reflectio
   the exhibition the world pan drives it (via `host.installMapBridge` viewport `localPanX/Y`), so a
   card off to one side is seen slightly from that side; the pointer adds a smaller turn. Eased.
 - Full frame rate while the pointer moves, 30 fps otherwise; stops drawing off screen.
+- Look controls (in `TUNING`, for the final colour audit): print `riso`/`sketch`, `light`, `sky`
+  (brightness of what the mirrors see), print-pass grades for the frames (room region) and the
+  glass (ball / accent region), and `frameTone` (frame material brightness).
