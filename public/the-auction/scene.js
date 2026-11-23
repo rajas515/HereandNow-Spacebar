@@ -1,7 +1,7 @@
 // The Auction (chapter 07), ported from the "New Auction 3D Composition" transfer
 // (Auction Composition.html). Seven objects from the studio, pre-printed in riso ink
 // (assets/item-*.webp, from the transfer's Composition PNGs), float in a CSS 3D composition.
-// Hovering lights an object (a pixel-exact hit mask per object, from the transfer); clicking it
+// Objects rest see-through; hovering brings one to full colour (a pixel-exact hit mask per object, from the transfer); clicking it
 // brings it forward with its outline and opens the Estate Sale card (the inline SVG in
 // index.html) with the current bids and a bid form. Bids are kept in the visitor's browser.
 //
@@ -96,11 +96,7 @@ try {
     image.alt = '';
     image.className = 'art';
     image.draggable = outline.draggable = false;
-    const shade = document.createElement('span');
-    shade.className = 'shade';
-    shade.style.position = 'absolute';
-    shade.style.maskImage = shade.style.webkitMaskImage = `url("${assetUrl(item.image)}")`;
-    plane.append(image, shade, outline);
+    plane.append(image, outline);
     entries.set(plane, {plane, item, index, image});
     world.append(plane);
     return plane;

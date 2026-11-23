@@ -10,12 +10,11 @@
 #front-world{z-index:1}
 .plane{position:absolute;inset:0 auto auto 0;transform-origin:center;cursor:pointer}
 .plane>img{position:absolute;display:block;pointer-events:none;-webkit-user-drag:none}
-.art{inset:0;width:100%;height:100%;transition:opacity 240ms ease}
+/* Lots rest see-through and come to full colour on hover or when opened (no dark shade). */
+.art{inset:0;width:100%;height:100%;opacity:.4;transition:opacity 240ms ease}
+.highlight>.art,.selected>.art{opacity:1}
 .outline{visibility:hidden}
 .selected>.outline{visibility:visible}
-.shade{inset:0;background:black;opacity:.8;pointer-events:none;mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-size:100% 100%;-webkit-mask-repeat:no-repeat;transition:opacity 240ms ease}
-.highlight>.shade{opacity:.3}
-.selected>.shade{opacity:0}
 #stage,#focus-item{user-select:none;-webkit-user-select:none}
 #focus-item{position:absolute;z-index:4;top:9%;right:10%;width:var(--card-scene-width,477px);aspect-ratio:694.5/474.5;pointer-events:none;transform:translate(var(--card-x,0cqw),var(--card-y,0cqh)) scale(var(--card-scale,1));transform-origin:top right}
 #focus-item[hidden]{display:none}
@@ -26,7 +25,7 @@
 #bid-form button{display:block;margin-top:9px;width:109px;height:34px;border:0;border-radius:0;background:#ff54c2;color:#171944;cursor:pointer;font:18.207px Mulish,Arial,sans-serif}
 #bid-form button:hover,#bid-form button:focus-visible{background:#f987de;outline:2px solid #842478}
 #bid-status{padding-top:4px;line-height:1.2}
-@media(prefers-reduced-motion:reduce){.art,.shade{transition:none}}
+@media(prefers-reduced-motion:reduce){.art{transition:none}}
 /* Embedded (exhibition world or map): the stage fills the frame, page chrome hidden. */
 .map-embedded body{background:transparent;overflow:hidden}.map-embedded header,.map-embedded h1,.map-embedded footer{display:none}.map-embedded main{width:100vw;height:100vh}.map-embedded #stage{aspect-ratio:auto;height:100%;background:transparent}
 </style><script>if(parent!==window)document.documentElement.classList.add('map-embedded');</script></head><body><header><a href="../">Scene studies</a></header><main><h1>the auction</h1><div id="stage" tabindex="0" aria-label="The auction: objects from the studio float up for sale. Hover to light one, click it to see its card and bid."><div id="frame"><div id="auction-stage"><div id="world"></div><div id="front-world"></div></div></div><div id="focus-item" hidden><svg fill="#171944" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" width="694.5" height="474.5" viewBox="28.0 316.5 694.5 474.5">

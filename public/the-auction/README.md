@@ -5,7 +5,7 @@ Source: the "New Auction 3D Composition - Laptop Transfer" (Nov 2026), from an e
 
 - **What it is:** seven objects from the studio (room cutaway, shelf, instrument, pedestal, disco ball,
   leaning panel, cow head), pre-printed in riso ink, float gently in a CSS 3D composition. Hover lights
-  an object (a pixel-exact hit mask per object); click brings it forward with its outline and opens the
+  an object to full colour (they rest see-through; a pixel-exact hit mask per object); click brings it forward with its outline and opens the
   Estate Sale card (inline SVG in `index.html`) with the three current bids and a bid form. Click the
   card or the object again, or press Escape, to close it. Bids are kept in the visitor's browser
   (`auction-local-bids-v1`), as in the transfer.
