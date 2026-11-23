@@ -59,7 +59,9 @@ $('viewport').addEventListener('pointermove',event=>{if(reduced||host.world||eve
 const r=$('viewport').getBoundingClientRect();pointer.set((event.clientX-r.left)/r.width*2-1,1-(event.clientY-r.top)/r.height*2);wake();},{passive:true});
 $('viewport').addEventListener('pointerleave',()=>{pointer.set(0,0);wake();});
 const aP=new THREE.Vector3(),bP=new THREE.Vector3(),aQ=new THREE.Quaternion(),bQ=new THREE.Quaternion();
-function wake(){if(ready&&!raf&&!document.hidden)raf=requestAnimationFrame(tick);}
+// In the exhibition, Act I rests while it is off screen (host.scroll.visible) and wakes on return.
+const onScreen=()=>!host.scroll||host.scroll.visible!==false;
+function wake(){if(ready&&!raf&&!document.hidden&&onScreen())raf=requestAnimationFrame(tick);}
 function invalidate(){dirty=true;wake();}
 function progress(){return host.scroll?host.scroll.progress:THREE.MathUtils.clamp(scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight),0,1);}
 function scrollToProgress(fraction){if(host.scroll)host.scroll.set(fraction);else window.scrollTo({top:fraction*Math.max(1,document.documentElement.scrollHeight-innerHeight),behavior:'instant'});}
@@ -341,7 +343,7 @@ function batchStatic(root,clips){
  for(const o of originals)o.removeFromParent();scene.add(group);batchCount=group.children.length;
 }
 function tick(now){
- raf=0;if(!ready||document.hidden)return;
+ raf=0;if(!ready||document.hidden||!onScreen())return;
  const dt=lastTick?Math.min((now-lastTick)/1000,.1):1/60;lastTick=now;
  const revealing=!reduced&&now-revealStart<5200;
  revealProgress.value=reduced?1:THREE.MathUtils.clamp((now-revealStart-450)/4600,0,1);

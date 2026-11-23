@@ -15,7 +15,7 @@ export function createWorldGL(canvas) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias: false, alpha: false, powerPreference: 'high-performance'});
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   const defaults = Object.fromEntries(STATE.map(k => [k, renderer[k]]));
-  const surfaces = [], claimed = new WeakSet();   // claimed: card elements whose background was handed to GL
+  const surfaces = [], claimed = new WeakSet();
   // The world's own state (compositing onto the paper), used when no card is drawing.
   const worldState = {state: {...defaults, clippingPlanes: []}, shadow: {enabled: false, type: THREE.PCFShadowMap, autoUpdate: true, needsUpdate: false},
     clearColor: new THREE.Color('#1a1d4a'), clearAlpha: 1, scissorTest: false};
@@ -231,6 +231,7 @@ export function createWorldGL(canvas) {
   const passThrough = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
   const premultiplied = {transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
     blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor};
+  const nativeRect = Element.prototype.getBoundingClientRect;
   function clipTo(object, surface) {   // scissor an object to its surface's clip box while it draws
     object.onBeforeRender = target => {
       const c = surface.clipRect;
@@ -291,7 +292,7 @@ export function createWorldGL(canvas) {
     const card = el.getRootNode().querySelector?.('.card-html');
     for (let node = el.parentElement; node; node = node === card ? null : node.parentElement) {
       if (getComputedStyle(node).overflow === 'visible' && node !== card) continue;
-      const b = node.getBoundingClientRect();
+      const b = nativeRect.call(node);   // the real box: cards may patch getBoundingClientRect to report unscaled sizes
       clip = clip ? {left: Math.max(clip.left, b.left), top: Math.max(clip.top, b.top), right: Math.min(clip.right, b.right), bottom: Math.min(clip.bottom, b.bottom)} : {left: b.left, top: b.top, right: b.right, bottom: b.bottom};
     }
     surface.clipRect = clip;
@@ -352,7 +353,7 @@ export function createWorldGL(canvas) {
   }
   function drawBackdrops(surface, H) {
     for (const b of surface.backdrops) {
-      const r = b.el.getBoundingClientRect();
+      const r = nativeRect.call(b.el);
       if (!b.mesh) { b.mesh = clipTo(flatMesh(), surface); b.mesh.geometry = quad; }
       b.mesh.visible = r.width > 0 && r.height > 0;
       if (!b.mesh.visible) continue;
@@ -365,7 +366,7 @@ export function createWorldGL(canvas) {
   }
   function drawUnderlays(surface, H) {
     for (const layer of surface.underlays) {
-      const svg = layer.svg, r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      const svg = layer.svg, r = nativeRect.call(svg), vb = svg.viewBox.baseVal;
       [...svg.querySelectorAll('polygon')].forEach((poly, i) => {
         let mesh = layer.meshes[i];
         if (!mesh) {
@@ -403,7 +404,7 @@ export function createWorldGL(canvas) {
       for (const layer of surface.underlays) for (const m of layer.meshes) m.visible = false;
       for (const b of surface.backdrops) if (b.mesh) b.mesh.visible = false;
       if (!el.isConnected || surface.hidden || getComputedStyle(el).visibility === 'hidden') continue;
-      const r = el.getBoundingClientRect();
+      const r = nativeRect.call(el);
       if (!r.width || r.right < 0 || r.left > W || r.bottom < 0 || r.top > H) continue;
       measure(surface);
       const a = surface.angle, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));

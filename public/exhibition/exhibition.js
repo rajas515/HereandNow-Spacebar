@@ -20,7 +20,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-22e';
+const ASSET_VERSION = '2026-11-23c';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 
@@ -29,20 +29,28 @@ let savedLayout = {};
 try { savedLayout = JSON.parse(localStorage.getItem(LAYOUT_KEY) || '{}'); } catch {}
 const nodes = [
   {...ACT_1, id: 'act-1', title: ACT_1.label, card: ACT_1.card ?? null, isAct: true},
-  ...CHAPTERS.map(ch => ({...ch, id: 'ch-' + ch.n, label: ch.card ? `${ch.n} ${ch.title}` : `${ch.n} ${ch.title} — cutout in progress`})),
+  ...CHAPTERS.map(ch => ({...ch, id: 'ch-' + ch.n, label: `${ch.n} ${ch.title}`})),
 ].map(n => {
   const stack = DEFAULT_LAYOUT[n.card]?.stack || {}, saved = savedLayout[n.id] || {};
   const el = document.createElement('section');
-  el.className = 'node' + (n.isAct ? ' act' : '');
+  el.className = 'node' + (n.isAct ? ' act' : n.card ? '' : ' pending');
   el.id = n.id;
-  el.innerHTML = `<div class="placeholder">${n.label}</div>`;
+  // A section without its module yet is a placeholder card: a dashed frame with its number, title and tone.
+  el.innerHTML = n.card || n.isAct ? `<div class="placeholder">${n.label}</div>`
+    : `<div class="placeholder"><span class="ph-num">${n.n}</span><strong>${n.title}</strong>${n.tone ? `<span class="ph-tone">${n.tone}</span>` : ''}<em>Module in progress</em></div>`;
   world.append(el);
   return {...n, x: (saved.x ?? n.x) / 100, y: (saved.y ?? n.y) / 100, size: saved.scale ?? n.scale ?? stack.scale ?? 1, rotation: n.rotation ?? stack.rotation ?? 0,
     el, frame: null, adapter: null, loading: false, viewKey: '', qualityKey: '', transformKey: ''};
 });
 
 // ---- camera ----
-let W = innerWidth, H = innerHeight;
+// The world is measured in screen heights: every card is one screen high and ASPECT screens
+// high wide (the shape of the screen the layout was arranged on), so the layout and each
+// card's composition look the same on any screen, only scaled. On a narrower screen a card's
+// sides run past the edges; on a wider one there is paper either side. OX centres a card.
+const ASPECT = 2.06;
+let W = innerWidth, H = innerHeight, U = Math.round(H * ASPECT), OX = (W - U) / 2;
+world.style.setProperty('--card-w', U + 'px');
 let pan = {x: 0, y: 0, z: 1}, target = {...pan}, active = 0, overview = false, dragging = false;
 let raf = 0, lastTime = 0;
 
@@ -57,14 +65,15 @@ const story = {progress: 0, onChange: null};
 const NOTE_LEAD = 2.68;   // seconds into the note when the opening stops ("Dear all, We have gathered here today to…")
 const OPENING_SPEED = 1.25;
 const AFTER_NOTE_SPEED = 5;   // the letter's reading pause and dissolve go by quickly when scrolled   // the self-playing opening runs a little faster than the scroll timeline
-const act1Scroll = {get progress() { return story.progress; }, set onChange(fn) { story.onChange = fn; }, set: p => setStory(p), timeline: null};
+const act1Scroll = {get progress() { return story.progress; }, set onChange(fn) { story.onChange = fn; }, set: p => setStory(p), timeline: null, visible: true};
 let opening = null, noteStart = 0;   // opening: {seconds} while it plays
 let inAct1 = !!act1 && !arranging;
-const act1Pose = () => ({z: 1, x: -act1.x * W, y: -act1.y * H});
+const act1Pose = () => ({z: 1, x: -act1.x * U, y: -act1.y * H});
 function setStory(p) {
   const next = Math.max(0, Math.min(1, p));
   if (next !== story.progress) { story.progress = next; story.onChange?.(); }
   // "Scroll down" while the opening waits at the note, until the visitor scrolls on.
+  document.body.classList.toggle('skippable', inAct1 && (!!opening || !act1Scroll.timeline || story.progress < noteStart));
   document.body.classList.toggle('waiting-at-note', inAct1 && !opening && noteStart > 0 && story.progress <= noteStart + .001);
 }
 function enterAct1(progress) {
@@ -93,6 +102,18 @@ function playOpening() {
   if (reducedMotion) return setStory(noteStart);
   opening = {seconds: 0}; wake();
 }
+// Dev phase: "Skip intro" (or Esc) jumps the opening straight to the curatorial note.
+// Remove the button in index.html and this block to drop it for launch.
+const skipButton = document.getElementById('skip-intro');
+function skipOpening() {
+  if (!inAct1 || story.progress >= noteStart && noteStart > 0) return;
+  const t = act1Scroll.timeline;
+  if (!t) return leaveAct1(), dragBy(0, -H * .5);   // Act I still loading: go straight to Act II
+  opening = null; setStory(noteStart); wake();
+}
+skipButton?.addEventListener('click', e => { e.stopPropagation(); skipOpening(); });
+skipButton?.addEventListener('pointerdown', e => e.stopPropagation());
+addEventListener('keydown', e => { if (e.key === 'Escape') skipOpening(); });
 function stepOpening(dt) {   // called each frame while the opening plays; pauses with the tab
   const t = act1Scroll.timeline;
   opening.seconds += dt * OPENING_SPEED;
@@ -114,9 +135,9 @@ function scroll(dy) {   // vertical scroll in screen pixels, positive = down
 
 function bound() {
   if (inAct1) return Object.assign(target, act1Pose());
-  const b = sceneBounds(nodes, W, H);
+  const b = sceneBounds(nodes, U, H);
   target.z = Math.max(ZOOM.min, Math.min(ZOOM.max, target.z));
-  target.x = Math.max(W * .15 - b.right * W * target.z, Math.min(W * .85 - b.left * W * target.z, target.x));
+  target.x = Math.max(W * .15 - OX - b.right * U * target.z, Math.min(W * .85 - OX - b.left * U * target.z, target.x));
   target.y = Math.max(H * .15 - b.bottom * H * target.z, Math.min(H * .85 - b.top * H * target.z, target.y));
   if (act1 && target.z === 1) target.y = Math.min(target.y, act1Pose().y);   // above Act I is Act I itself
 }
@@ -127,7 +148,7 @@ function focus(i, instant = false) {   // centre a chapter at zoom 1
   if (act1 && active === 0 && !arranging) { enterAct1(story.progress); if (instant) pan = {...target}; return; }
   if (inAct1) leaveAct1(); else showPanHint();
   overview = false;
-  target = {z: 1, x: -nodes[active].x * W, y: -nodes[active].y * H};
+  target = {z: 1, x: -nodes[active].x * U, y: -nodes[active].y * H};
   bound();
   if (instant) pan = {...target};
   updateHud(); wake();
@@ -137,7 +158,7 @@ function zoomTo(z, cx = W / 2, cy = H / 2) {   // zoom about a screen point, ins
   const old = target.z;
   target.z = Math.max(ZOOM.min, Math.min(ZOOM.max, z));
   const k = target.z / old;
-  target.x = cx + (target.x - cx) * k; target.y = cy + (target.y - cy) * k;
+  target.x = cx - OX + (target.x - cx + OX) * k; target.y = cy + (target.y - cy) * k;
   overview = target.z <= ZOOM.min + .001;
   bound(); updateHud(); wake();
 }
@@ -160,11 +181,11 @@ function key(code, shift = false) {
 }
 
 // ---- cards: the card's page markup in a shadow root, its scene module on the shared renderer ----
-function frameHeight() { return Math.min(H, W / 1.42); }
+function frameHeight() { return Math.min(H, U / 1.42); }
 function sizeFrame(n) {   // same box the iframe had: full width, landscape height, centred
   const h = n.fullscreen ? H : frameHeight(), style = n.frame.style;
   style.height = h + 'px'; style.top = (H - h) / 2 + 'px';
-  style.setProperty('--card-vh', h / 100 + 'px'); style.setProperty('--card-vw', W / 100 + 'px');
+  style.setProperty('--card-vh', h / 100 + 'px'); style.setProperty('--card-vw', U / 100 + 'px');
 }
 async function mount(n) {
   n.loading = true;
@@ -193,6 +214,9 @@ async function mount(n) {
     const module = await import(new URL(`${n.script || 'scene.js'}?v=${ASSET_VERSION}`, base));
     await module.mount(host);
     n.el.dataset.ready = '';
+    // Warm-up: draw once while off screen, so its shaders compile during loading (behind the
+    // Act I opening) rather than freezing the first pan that reaches it.
+    n.warmUntil = performance.now() + 900; wake();
     if (n === act1) playOpening();
   } catch (error) {
     console.error(`Card ${n.card} could not load`, error);
@@ -237,7 +261,7 @@ addEventListener('pointermove', e => {
   if (press.moved || arranging) e.stopPropagation();
   if (!press.moved) return;
   const dx = e.clientX - press.lastX, dy = e.clientY - press.lastY;
-  if (press.node) moveNode(press.node, dx / (W * pan.z), dy / (H * pan.z), 0);
+  if (press.node) moveNode(press.node, dx / (U * pan.z), dy / (H * pan.z), 0);
   else { if (!inAct1) dragBy(dx, 0); scroll(-dy); }
   press.lastX = e.clientX; press.lastY = e.clientY;
 }, true);
@@ -291,7 +315,7 @@ function chaptersFile() {   // the current arrangement as a complete chapters.js
   const lines = CHAPTERS.map(ch => `  {${[...fields(ch), ...place(nodes.find(m => m.id === 'ch-' + ch.n))].join(', ')}},`);
   return [
     '// Single source of truth for the exhibition world (arranged in /exhibition/?arrange).',
-    '// x / y are world positions in viewport percentages; scale sizes the card.',
+    '// x / y are world positions in % of a card width / height (one screen high, ASPECT in exhibition.js wide); scale sizes the card.',
     '// card: folder under public/ with the cutout page, or null for a placeholder;',
     '// script: its scene module if not scene.js.',
     '',
@@ -324,7 +348,8 @@ $('#prev').onclick = () => focus(active - 1);
 $('#next').onclick = () => focus(active + 1);
 $('#overview').onclick = () => overview ? zoomTo(1) : showOverview();
 addEventListener('resize', () => {
-  W = innerWidth; H = innerHeight; drawMinimap();
+  W = innerWidth; H = innerHeight; U = Math.round(H * ASPECT); OX = (W - U) / 2;
+  world.style.setProperty('--card-w', U + 'px'); drawMinimap();
   nodes.forEach(n => { n.transformKey = n.viewKey = ''; if (n.frame) sizeFrame(n); });
   bound(); wake();
 });
@@ -348,7 +373,7 @@ function drawMinimap() {
   const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y), pad = .3;
   mini = {x: Math.min(...xs) - pad, y: Math.min(...ys) - pad, w: Math.max(...xs) - Math.min(...xs) + 1 + pad * 2, h: Math.max(...ys) - Math.min(...ys) + 1 + pad * 2};
   minimap.setAttribute('viewBox', `${mini.x} ${mini.y} ${mini.w} ${mini.h}`);
-  const ratio = Math.min(1, W / 1.42 / H);
+  const ratio = Math.min(1, U / 1.42 / H);
   minimap.innerHTML = nodes.map((n, i) => `<rect class="room" data-i="${i}" x="${n.x + .5 - n.size * .4}" y="${n.y + .5 - n.size * ratio * .4}" width="${n.size * .8}" height="${n.size * ratio * .8}" rx=".04" vector-effect="non-scaling-stroke"><title>${n.label}</title></rect>`).join('')
     + '<rect class="view" vector-effect="non-scaling-stroke"/>';
   updateHud();
@@ -359,7 +384,7 @@ minimap.addEventListener('click', e => {
   const p = minimap.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
   const u = p.matrixTransform(minimap.getScreenCTM().inverse());   // world units
   if (inAct1) leaveAct1();
-  overview = false; target = {z: 1, x: -(u.x - .5) * W, y: -(u.y - .5) * H}; bound(); updateHud(); wake();
+  overview = false; target = {z: 1, x: -(u.x - .5) * U, y: -(u.y - .5) * H}; bound(); updateHud(); wake();
 });
 
 // How present a card is (cards fold their insets away as this drops): the visible share of
@@ -381,23 +406,28 @@ function animate(now) {
     const d = target[k] - pan[k];
     if (Math.abs(d) > (k === 'z' ? .0001 : .1)) { pan[k] += d * ease; moving = true; } else pan[k] = target[k];
   }
-  world.style.transform = `translate3d(${pan.x}px,${pan.y}px,0) scale(${pan.z})`;
+  world.style.transform = `translate3d(${pan.x + OX}px,${pan.y}px,0) scale(${pan.z})`;
   const q = quality(), qKey = JSON.stringify(q), waiting = [];
   let nearest = active, best = Infinity;
   for (const [i, n] of nodes.entries()) {
-    const t = `translate3d(${n.x * W}px,${n.y * H}px,0) rotate(${n.rotation}deg) scale(${n.size})`;
+    const t = `translate3d(${n.x * U}px,${n.y * H}px,0) rotate(${n.rotation}deg) scale(${n.size})`;
     if (n.transformKey !== t) { n.el.style.transform = t; n.transformKey = t; }
-    const r = screenRect(n, pan, W, H);
+    const r = screenRect(n, {...pan, x: pan.x + OX}, U, H);
     n.distance = Math.hypot(r.cx - W / 2, r.cy - H / 2);
     if (n.distance < best) { best = n.distance; nearest = i; }
+    if (n === act1) {   // Act I has no adapter: tell it directly whether it is on screen
+      const shown = r.right > 0 && r.left < W && r.bottom > 0 && r.top < H;
+      if (shown !== act1Scroll.visible) { act1Scroll.visible = shown; if (shown) story.onChange?.(); }
+    }
     if (!n.card) continue;
     const near = r.right > -W * .3 && r.left < W * 1.3 && r.bottom > -H * .3 && r.top < H * 1.3;
     if (!n.loading) { waiting.push({n, d: near ? n.distance : 1e7 + i}); continue; }   // near first, then chapter order
     if (!n.adapter) continue;
     if (n.qualityKey !== qKey) { n.adapter.layout?.({layout: DEFAULT_LAYOUT, quality: q}); n.qualityKey = qKey; }
-    const local = localCardOffset(n, pan, W, H), visible = r.right > 0 && r.left < W && r.bottom > 0 && r.top < H;
+    const warming = n.warmUntil > now, local = localCardOffset(n, pan, U, H) /* relative to the screen centre: OX cancels */, visible = warming || (r.right > 0 && r.left < W && r.bottom > 0 && r.top < H);
+    if (warming) moving = true;   // keep frames coming until the warm-up ends
     const state = {localPanX: +local.x.toFixed(2), localPanY: +local.y.toFixed(2),
-      offsetX: Math.round((r.cx - W * pan.z / 2) / pan.z), offsetY: Math.round((r.cy - H * pan.z / 2) / pan.z),
+      offsetX: Math.round((r.cx - OX - U * pan.z / 2) / pan.z), offsetY: Math.round((r.cy - H * pan.z / 2) / pan.z),
       presence: +onScreen(r).toFixed(2), visible, dragging, overview, scale: +pan.z.toFixed(2)};
     const key = JSON.stringify(state);
     if (n.viewKey !== key) { n.adapter.viewport?.(state); n.viewKey = key; }
@@ -406,8 +436,8 @@ function animate(now) {
   if (!overview && !inAct1 && nearest !== active) { active = nearest; updateHud(); }
   if (mini) {
     const v = minimap.querySelector('.view');
-    v.setAttribute('x', -pan.x / pan.z / W); v.setAttribute('y', -pan.y / pan.z / H);
-    v.setAttribute('width', 1 / pan.z); v.setAttribute('height', 1 / pan.z);
+    v.setAttribute('x', (-pan.x - OX) / pan.z / U); v.setAttribute('y', -pan.y / pan.z / H);
+    v.setAttribute('width', W / U / pan.z); v.setAttribute('height', 1 / pan.z);
   }
   if (moving || gl.dirty) gl.composite();
   world.classList.add('placed');

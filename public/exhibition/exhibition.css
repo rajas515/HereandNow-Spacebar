@@ -6,10 +6,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 #world{position:absolute;inset:0;transform-origin:0 0;will-change:transform;visibility:hidden}   /* shown once the first frame has placed everything */
 #world.placed{visibility:visible}
 #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
-.node{position:absolute;width:100vw;height:100vh;contain:layout style;pointer-events:none}
+.node{position:absolute;width:var(--card-w,100vw);height:100vh;contain:layout style;pointer-events:none}
 .frame{position:absolute;left:0;width:100%;pointer-events:auto;contain:layout}   /* card document (shadow root), where the iframe used to be */
 .placeholder{position:absolute;inset:20%;display:grid;place-content:center;text-align:center;color:var(--muted);font:20px Georgia,serif}
 .node[data-ready] .placeholder{display:none}
+/* Placeholder card: the box a module will fill (full width, landscape height, centred like a card frame). */
+.node.pending .placeholder{inset:3vh 4%;gap:10px;align-content:center;justify-items:center;border:1.5px dashed #7b83d888;border-radius:14px;background:#20245a66;color:var(--muted)}
+.node.pending .ph-num{font:13px Arial,sans-serif;letter-spacing:.2em;color:var(--pink)}
+.node.pending strong{font:400 clamp(30px,4.6vw,64px)/1.05 Georgia,serif;color:#e5dce9;max-width:80%}
+.node.pending .ph-tone{font:italic 17px Georgia,serif}
+.node.pending em{margin-top:10px;font:11px Arial,sans-serif;font-style:normal;letter-spacing:.16em;text-transform:uppercase;color:#7f80a6}
 .node.act .placeholder{display:none}   /* the page lands straight on Act I's sequence */
 
 /* Corner HUD, herenowtest-style: site top-left, where you are bottom-left, map bottom-right. */
@@ -37,6 +43,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 .waiting-at-note .hud-hint{opacity:1}
 @keyframes hint-bob{50%{transform:translateY(4px)}}
 @media (prefers-reduced-motion:reduce){.hud-hint span{animation:none}}
+
+/* Dev phase: skip the self-playing opening. */
+.hud-skip{right:22px;bottom:22px;padding:7px 13px;border:1px solid var(--ui-line);border-radius:16px;background:#1a1d4aeb;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s}
+.hud-skip:hover{color:var(--pink)}
+.skippable .hud-skip{opacity:1;pointer-events:auto}
 
 /* First arrival in Act II: a hand presses, drags across and lets go, once per visit. */
 .hud-pan-hint{left:50%;top:50%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:14px;padding:22px 26px 18px;border-radius:18px;background:#1a1d4acc;text-transform:none;letter-spacing:0;font:15px Georgia,serif;color:#e5dce9;opacity:0;transition:opacity .6s;pointer-events:none}
