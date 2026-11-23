@@ -3,6 +3,7 @@ import {mergeGeometries} from '../shared/vendor/BufferGeometryUtils.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
 import {loadTuning, tuningPanel} from '../shared/tuning-panel.js';
+import {createCut} from './cutout.js';
 
 // Karmic Debts: the corner of the studio of studio_room.blend (tools/export-karmic.py), framed
 // as in the sketch: the back plaster wall on the left, the glass partition on the right, the two
@@ -185,6 +186,18 @@ try {
   scene.add(fill);
   renderer.shadowMap.needsUpdate = true;
 
+  // ---- the paper cut-out, wide and close (cutout.js), anchored to the two un-orbited views ----
+  const cut = createCut(renderer, scene, pass);
+  const wideAnchor = new THREE.PerspectiveCamera(60, HOME_ASPECT, .05, 40);
+  const closeAnchor = new THREE.PerspectiveCamera(60, HOME_ASPECT, .05, 40);
+  function aim(anchor, x, y, z, lx, ly, lz, lens) {
+    anchor.position.set(x, y, z);
+    anchor.up.set(0, 1, 0);
+    anchor.lookAt(lx, ly, lz);
+    anchor.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(Math.atan(18 / lens)) / HOME_ASPECT));
+    anchor.updateProjectionMatrix();
+  }
+
   // ---- look: print grades, material brightness and light, all from tuning ----
   const GRADES = {room: 'room', glass: 'foliage', cards: 'ball'};
   function applyLook() {
@@ -304,6 +317,9 @@ try {
     const dt = Math.min(.05, (time - lastDraw) / 1000 || .016);
     lastDraw = time;
     stepZoom(time);
+    aim(wideAnchor, tuning.camX, tuning.camY, tuning.camZ, tuning.lookX, tuning.lookY, tuning.lookZ, tuning.lens);
+    aim(closeAnchor, tuning.closeCamX, tuning.closeCamY, tuning.closeCamZ, tuning.closeLookX, tuning.closeLookY, tuning.closeLookZ, tuning.closeLens);
+    cut.update(wideAnchor, closeAnchor, viewMix);
     applyLook();
     frameCamera(dt);
     pass.render(scene, camera, time / 1000);
