@@ -16,7 +16,7 @@ export const CHAPTERS = [
   {n: '04', title: 'Eulogies', act: 'Act II · The Wake', card: 'architecture', script: 'app.js', x: -70.9, y: 104.2, scale: 0.84},
   {n: '05', title: 'Skeletons in the Closet', act: 'Act II · The Wake', card: 'skeletons-in-the-closet', x: 58.1, y: 200, scale: 1.22},
   {n: '06', title: 'The Will', act: 'Act II · The Wake', card: 'will', x: 94, y: 62.8, scale: 1.64},
-  {n: '07', title: 'The Auction', act: 'Act II · The Wake', tone: 'Playful, competitive, sentimental', card: null, x: -39.1, y: 179.1, scale: 1.01},
+  {n: '07', title: 'The Auction', act: 'Act II · The Wake', tone: 'Playful, competitive, sentimental', card: 'the-auction', x: -39.1, y: 179.1, scale: 1.01},
   {n: '08', title: 'Karmic Debts', act: 'Act III · The Afterlife', tone: 'Contemplative, unresolved', card: 'karmic-debts', x: -55, y: 385, scale: 0.9},
   {n: '09', title: 'Prayers for the Next Life', act: 'Act III · The Afterlife', tone: 'Hopeful, intimate, bittersweet', card: 'prayers-for-the-next-life', x: 55, y: 450, scale: 0.9},
   {n: '10', title: 'Closing Statement / Reflections', act: 'Act III · The Afterlife', tone: 'Reflective, conclusive, quietly hopeful', card: 'closing-statement', x: 0, y: 535, scale: 0.9},
