@@ -3,6 +3,7 @@ import {applyMapAppearance} from '../shared/map-appearance.js';
 import * as THREE from '../shared/vendor/three.module.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
+import {addAccent} from '../shared/accent.js';
 import {installComposition} from '../shared/cutout/composition.js';
 import {createStageClipping} from '../shared/cutout/stage-clipping.js';
 import {addAtmosphere} from '../shared/cutout/atmosphere.js';
@@ -21,6 +22,8 @@ let mapColor={},mapPrint={},mapBridge;
 let mannequinInset,lastInsetDraw=0;
 const daylight=createDaylight();
 const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage'),embedded=host.embedded;
+// Blue accent shard behind the room (shared/accent.js, disco's backing), traced from the exhibition comp.
+addAccent(host,stage,[[-.2723,.1067],[.4765,.0085],[.9591,.5368],[.068,1.1144]],canvas);
 if(embedded)host.documentElement.classList.add('map-embedded');
 const KEY='green-hour-skeletons-in-the-closet-v1';
 const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.12,quality:'balanced',floorLight:-.35,roomLight:0,objectLight:-.15,windowLight:-.35,floorWarmth:-.15,roomWarmth:0,objectWarmth:.08,windowWarmth:-.1};
@@ -75,8 +78,8 @@ function tick(now){
  dirty=false;if(moving||easing)wake();
 }
 async function init(){try{
- renderer=host.createRenderer({canvas,antialias:true,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.info.autoReset=false;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
- pass=new PrintPass(renderer);installComposition(pass);
+ renderer=host.createRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.info.autoReset=false;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ pass=new PrintPass(renderer);installComposition(pass);pass.uniforms.uTransparentOutside.value=1;   // the accent shows around the room
  pass.uniforms.uFloor0={value:new THREE.Vector4()};pass.uniforms.uFloor1={value:new THREE.Vector4()};
  pass.material.fragmentShader='uniform vec4 uFloor0,uFloor1;\n'+pass.material.fragmentShader;
  pass.material.fragmentShader=pass.material.fragmentShader.replace('return m>.8?uGradeBall0:','return m>.65&&m<.79?uFloor0:m>.8?uGradeBall0:').replace('return m>.8?uGradeBall1:','return m>.65&&m<.79?uFloor1:m>.8?uGradeBall1:');

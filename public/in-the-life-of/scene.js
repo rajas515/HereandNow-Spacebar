@@ -3,6 +3,7 @@ import {applyMapAppearance} from '../shared/map-appearance.js';
 import * as THREE from '../shared/vendor/three.module.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
+import {addAccent} from '../shared/accent.js';
 import {bakePerimeter} from '../shared/cutout/bake-static.js';
 import {installComposition,foliageMaterial,buildWindowApertures,WIDE_OUTLINE} from '../shared/cutout/composition.js';
 import {createStageClipping} from '../shared/cutout/stage-clipping.js';
@@ -17,6 +18,8 @@ let mapViewportState={};
 let mapColor={},mapPrint={},mapBridge;
 
 const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage');
+// Blue accent shard behind the room (shared/accent.js, disco's backing), traced from the exhibition comp.
+addAccent(host,stage,[[.902,-.424],[.788,.997],[.774,1.309],[.18,1.045],[.296,.103]],canvas);
 const embedded=host.embedded;
 if(embedded)host.documentElement.classList.add('map-embedded');
 const KEY='green-hour-in-the-life-of-v1';
@@ -152,10 +155,10 @@ function portalMaterial(){return new THREE.ShaderMaterial({uniforms:{garden:{val
 });}
 async function init(){
   try{
-    renderer=host.createRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+    renderer=host.createRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
     renderer.info.autoReset=false;
     renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    renderer.outputColorSpace=THREE.SRGBColorSpace;pass=new PrintPass(renderer);installComposition(pass);
+    renderer.outputColorSpace=THREE.SRGBColorSpace;pass=new PrintPass(renderer);installComposition(pass);pass.uniforms.uTransparentOutside.value=1;   // the accent shows around the room
     const [gltf,garden,foliage,paperEdges]=await Promise.all([gltfLoader().loadAsync(assetUrl('./assets/studio.glb?v=draco1')),new THREE.CubeTextureLoader().loadAsync(['px','nx','py','ny','pz','nz'].map(f=>assetUrl(`./assets/garden-${f}.webp?v=webp1`))),new THREE.TextureLoader().loadAsync(assetUrl('../disco/assets/garden.webp?v=webp1')),fetch(assetUrl('./assets/paper-edges.json')).then(r=>{if(!r.ok)throw Error('Paper contours could not load');return r.json();})]);
     foliage.wrapS=foliage.wrapT=THREE.MirroredRepeatWrapping;foliage.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());gardenMaterial=foliageMaterial(foliage);
     cube=garden;cube.colorSpace=THREE.SRGBColorSpace;room=gltf.scene;
@@ -205,6 +208,11 @@ canvas.addEventListener('pointercancel',()=>{pointerDown=null;});
 canvas.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();setView(false);}if(e.code==='Enter'){e.preventDefault();setView(!close);}});
 canvas.addEventListener('pointermove',e=>{if(pointerDown&&!embedded){if(Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)>6)pointerDown.dragged=true;if(pointerDown.dragged){const r=canvas.getBoundingClientRect(),units=2*(camera.position.y-.75)*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/r.height;pan.x=THREE.MathUtils.clamp(pan.x-(e.screenX-pointerDown.lastX)*units,-4,4);pan.y=THREE.MathUtils.clamp(pan.y-(e.screenY-pointerDown.lastY)*units,-4,4);dirty=true;wake();canvas.style.cursor='grabbing';}pointerDown.lastX=e.screenX;pointerDown.lastY=e.screenY;return;}canvas.style.cursor=close?'zoom-out':tableHit(e)?'zoom-in':'grab';if(paused||reduced)return;const r=canvas.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,(e.clientY-r.top)/r.height*2-1);wake();});
 canvas.addEventListener('dblclick',()=>{pan.set(0,0);dirty=true;wake();});
+// Tell the exhibition when the pointer is over the worktables (where a click moves closer),
+// so its Enter cursor shows only there.
+let overTables=null;const reportTables=over=>{if(over!==overTables){overTables=over;mapBridge?.hover?.(over);}};
+canvas.addEventListener('pointermove',e=>{if(!pointerDown)reportTables(!close&&tableHit(e));},{passive:true});
+canvas.addEventListener('pointerleave',()=>reportTables(false));
 canvas.addEventListener('keydown',e=>{const moves={ArrowLeft:[-.2,0],ArrowRight:[.2,0],ArrowUp:[0,-.2],ArrowDown:[0,.2]};if(moves[e.code]){e.preventDefault();pan.add(new THREE.Vector2(...moves[e.code]));pan.clampScalar(-4,4);dirty=true;wake();}if(e.code==='Home'){pan.set(0,0);dirty=true;wake();}});
 canvas.addEventListener('pointerleave',()=>{pointer.set(0,0);wake();});
 document.addEventListener('visibilitychange',()=>{lastDraw=0;dirty=true;wake();});

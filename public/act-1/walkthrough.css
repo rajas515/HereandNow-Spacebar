@@ -61,3 +61,6 @@ body{min-height:1700vh!important}html{scrollbar-color:#55576d #1a1d4a}#memorial-
 #intro-choice{border:0;border-right:1px solid #575b83;border-radius:0;background:transparent;margin:0 5px 0 3px;padding:5px 8px;max-width:120px}
 /* Embedded as the exhibition's opening: the world drives the scroll; no standalone mode switch. */
 .map-embedded #camera-modes{display:none!important}
+/* The opening question, set like the curatorial note. */
+#intro-question{position:fixed;inset:0;z-index:20;display:grid;place-content:center;margin:0;padding:0 28px;text-align:center;font:400 clamp(25px,2.4vw,33px)/1.55 Georgia,'Times New Roman',serif;color:#808ff5;pointer-events:none}
+#intro-question .line span{display:inline-block;opacity:0;will-change:opacity,filter}

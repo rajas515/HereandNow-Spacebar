@@ -1,6 +1,7 @@
 import * as THREE from '../shared/vendor/three.module.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
+import {addAccent} from '../shared/accent.js';
 
 
 const assetUrl=path=>new URL(path,import.meta.url).href;
@@ -9,6 +10,8 @@ const assetUrl=path=>new URL(path,import.meta.url).href;
 export async function mount(host){
 const canvas=host.$('#scene');
 const stage=host.$('#stage');
+// Blue accent shard behind the room (shared/accent.js, disco's backing), traced from the exhibition comp.
+addAccent(host,stage,[[.0927,.4395],[.8204,.4395],[.6444,1.0311]],canvas);
 const status=host.$('#status');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color('#1a1d4a');
@@ -198,10 +201,10 @@ async function build(){
 }
 
 try{
-  const renderer=host.createRenderer({canvas,antialias:true});
+  const renderer=host.createRenderer({canvas,antialias:true,alpha:true});
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.autoUpdate=false;
-  const pass=new PrintPass(renderer);
+  const pass=new PrintPass(renderer);pass.uniforms.uTransparentOutside.value=1;   // the accent shows around the room
   pass.set('riso',.62);
   pass.set('sketch',.46);
   pass.set('wobble',.22);

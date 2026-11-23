@@ -288,9 +288,10 @@ export function createWorldGL(canvas) {
     surface.angle = angle; surface.clips = clips;
     // Boxes that clip the canvas (overflow other than visible, up to the card's own frame),
     // as the browser or the iframe would: drawn with a scissor to their intersection.
+    // Accent shards (shared/accent.js) reach past their card on purpose: never clipped.
     let clip = null;
-    const card = el.getRootNode().querySelector?.('.card-html');
-    for (let node = el.parentElement; node; node = node === card ? null : node.parentElement) {
+    const card = el.closest('.accent-shard') ? null : el.getRootNode().querySelector?.('.card-html');
+    for (let node = card && el.parentElement; node; node = node === card ? null : node.parentElement) {
       if (getComputedStyle(node).overflow === 'visible' && node !== card) continue;
       const b = nativeRect.call(node);   // the real box: cards may patch getBoundingClientRect to report unscaled sizes
       clip = clip ? {left: Math.max(clip.left, b.left), top: Math.max(clip.top, b.top), right: Math.min(clip.right, b.right), bottom: Math.min(clip.bottom, b.bottom)} : {left: b.left, top: b.top, right: b.right, bottom: b.bottom};
@@ -450,6 +451,7 @@ function rewriteCss(css, base) {
     .replace(/(-?\d*\.?\d+)[sdl]?vw\b/g, 'calc($1 * var(--card-vw))');
 }
 const HOST_CSS = `:host{all:initial;display:block;position:absolute;inset:0}
+:host(.no-cursor) *{cursor:none!important}
 .card-html,.card-body{position:relative;width:100%;height:100%;margin:0;overflow:hidden;background:transparent!important}
 canvas.card-gl{background:transparent!important}
 #loading{display:none!important}`;   /* the world shows the chapter label until the card is ready */

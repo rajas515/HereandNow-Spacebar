@@ -49,8 +49,26 @@ titleMask.flipY=false;pass.uniforms.tTitle.value=titleMask;
 const introLoader=new THREE.TextureLoader();
 const introOptions={calligraphy:{path:assetUrl('./intro-lettering.png'),aspect:600/387},serif:{path:assetUrl('./intro-serif.png'),aspect:2}};
 const introTextures={};let introChoice='calligraphy';
-function chooseIntro(name,replay=false){introChoice=name;const option=introOptions[name];const texture=introTextures[name]||(introTextures[name]=introLoader.load(option.path,()=>invalidate()));texture.flipY=false;pass.uniforms.tIntro.value=texture;pass.uniforms.uIntroAspect.value=option.aspect;if(replay&&ready)seek(0);invalidate();}
-chooseIntro('calligraphy');
+function chooseIntro(name,replay=false){introChoice=name;const option=introOptions[name];const texture=option.path?introTextures[name]||(introTextures[name]=introLoader.load(option.path,()=>invalidate())):blankIntro;texture.flipY=false;pass.uniforms.tIntro.value=texture;pass.uniforms.uIntroAspect.value=option.aspect;if(replay&&ready)seek(0);invalidate();}
+// The opening question is plain text, set like the curatorial note (Georgia, lilac ink,
+// each word arriving in pink and settling), timed by the story instead of scroll.
+// The calligraphy graphic is kept in the shader's slot as blank paper, so the room still
+// arrives underneath on the same schedule.
+introOptions.text={path:null,aspect:2};
+const blankIntro=new THREE.DataTexture(new Uint8Array([255,255,255,255]),1,1);blankIntro.needsUpdate=true;
+const question=document.createElement('p');question.id='intro-question';question.setAttribute('aria-label','How did you know Exhib?');
+question.innerHTML='<span class="line">'+'How did you know Exhib?'.split(' ').map(w=>`<span aria-hidden="true">${w}</span>`).join(' ')+'</span>';
+(host.body||document.body).append(question);
+const questionWords=[...question.firstChild.children];
+const QUESTION={start:.8,step:.32,ink:.85,holdUntil:6.4,fadeOut:1.6};
+function updateQuestion(t){   // t: seconds into the story
+ const on=introChoice==='text'&&t<QUESTION.holdUntil+QUESTION.fadeOut;
+ question.hidden=!on;if(!on)return;
+ const fade=1-THREE.MathUtils.smoothstep(t,QUESTION.holdUntil,QUESTION.holdUntil+QUESTION.fadeOut);
+ questionWords.forEach((w,i)=>{const k=THREE.MathUtils.clamp((t-QUESTION.start-i*QUESTION.step)/QUESTION.ink,0,1),e=1-Math.pow(1-k,3);
+  w.style.opacity=(e*fade).toFixed(3);w.style.color=`color-mix(in srgb,#fd0280 ${Math.round((1-e)*100)}%,#808ff5)`;w.style.filter=`blur(${((1-e)*3).toFixed(2)}px)`;});
+}
+chooseIntro('text');
 $('intro-choice').onchange=event=>chooseIntro(event.target.value,true);
 let drawCount=0,drawTotal=0,lastCaption='',batchCount=0,sourceCalls=0,adaptiveScale=1;
 const pointer=new THREE.Vector2(),parallax=new THREE.Vector2();
@@ -363,7 +381,7 @@ function tick(now){
  const pointerMoving=parallax.distanceToSquared(pointer)>.000001;
  if(pointerMoving)parallax.lerp(pointer,1-Math.exp(-dt*14));
  if(moving||pointerMoving){applyCamera();dirty=true;}
- pass.uniforms.uIntroSequence.value=storyTime<introDuration?storyTime:-1;
+ pass.uniforms.uIntroSequence.value=storyTime<introDuration?storyTime:-1;updateQuestion(storyTime);
  revealProgress.value=THREE.MathUtils.clamp((storyTime-4.8)/6.2,0,1);pass.uniforms.uReveal.value=revealProgress.value;
  const endSequence=storyTime>=introDuration+roomDuration?storyTime-introDuration-roomDuration:-1;
  pass.uniforms.uEndSequence.value=endSequence;

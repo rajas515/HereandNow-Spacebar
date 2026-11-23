@@ -83,7 +83,7 @@ function clampPan(){panTarget.x=THREE.MathUtils.clamp(panTarget.x,-host.innerWid
 const pointerNDC=new THREE.Vector2(-20,-20);
 const raycaster=new THREE.Raycaster();
 let downPosition=null;
-let overMainFrame=false;let faceAtlas;
+let overMainFrame=false,reportedOver=null;let faceAtlas;   // reportedOver: last value sent to the exhibition (mapBridge.hover); null sends the first one
 const look=new THREE.Vector3();
 
 function buildRoom(){
@@ -436,7 +436,7 @@ canvas.addEventListener('pointermove',e=>{
   if(panStart){const dx=e.clientX-panStart.x,dy=e.clientY-panStart.y;if(Math.hypot(dx,dy)>5)isDragging=true;if(isDragging){if(!MAP_EMBEDDED){panTarget.set(panStart.px+dx,panStart.py+dy);clampPan();}canvas.style.cursor='grabbing';}}
   pointerNDC.copy(canvasPoint(e));pointer.set(THREE.MathUtils.clamp(pointerNDC.x,-1,1),THREE.MathUtils.clamp(pointerNDC.y,-1,1));
 });
-canvas.addEventListener('pointerleave',()=>{overMainFrame=false;if(!panStart){pointer.set(0,0);pointerNDC.set(-20,-20);}});
+canvas.addEventListener('pointerleave',()=>{overMainFrame=false;if(reportedOver){reportedOver=false;mapBridge?.hover?.(false);}if(!panStart){pointer.set(0,0);pointerNDC.set(-20,-20);}});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;downPosition=[e.clientX,e.clientY];panStart={x:e.clientX,y:e.clientY,px:panTarget.x,py:panTarget.y};isDragging=false;canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointerup',e=>{const dragged=isDragging;panStart=null;isDragging=false;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor='grab';if(dragged||!downPosition||Math.hypot(e.clientX-downPosition[0],e.clientY-downPosition[1])>8){downPosition=null;return;}if(MAP_EMBEDDED&&mapViewport.overview){mapBridge?.focus();downPosition=null;return;}raycaster.setFromCamera(canvasPoint(e),camera);if(!close&&hitsMainFrame()){setView(true);}else if(ballCore&&raycaster.intersectObject(ballCore,false).length)setView(!close);downPosition=null;});
 canvas.addEventListener('pointercancel',()=>{panStart=null;isDragging=false;downPosition=null;});
@@ -471,7 +471,7 @@ function animate(now){
     flecks.forEach((f,i)=>{const a=elapsed*.37+f.userData.phase;f.position.set(Math.sin(a)*.35,Math.sin(a*1.7)*.25,Math.cos(a)*.34);const pulse=Math.pow(Math.max(0,Math.sin(elapsed*1.3+i*1.9)),12);f.material.opacity=pulse*.8;f.scale.setScalar(.13+pulse*.16);});
     reflectionSpots.forEach((m,i)=>{m.position.x=m.userData.base.x+Math.sin(elapsed*.13+m.userData.phase)*.28;m.position.z=m.userData.base.z+(i<24?Math.cos(elapsed*.11+i)*.20:0);m.material.opacity=(.18+Math.sin(elapsed*.9+i)*.12);m.updateMatrix();reflectionBatch.setMatrixAt(i,m.matrix);reflectionOpacity.setX(i,m.material.opacity);});if(reflectionBatch){reflectionBatch.instanceMatrix.needsUpdate=true;reflectionOpacity.needsUpdate=true;}
     // Only a small sphere is ray-tested; 960+ tiles are never picked individually.
-    if(frame%4===0){raycaster.setFromCamera(pointerNDC,camera);hover=raycaster.intersectObject(ballCore,false).length>0;overMainFrame=!close&&hitsMainFrame();canvas.style.cursor=isDragging?'grabbing':(hover||overMainFrame)?'pointer':'grab';}
+    if(frame%4===0){raycaster.setFromCamera(pointerNDC,camera);hover=raycaster.intersectObject(ballCore,false).length>0;overMainFrame=!close&&hitsMainFrame();if(overMainFrame!==reportedOver){reportedOver=overMainFrame;mapBridge?.hover?.(overMainFrame);}canvas.style.cursor=isDragging?'grabbing':(hover||overMainFrame)?'pointer':'grab';}
     labelProjected.copy(ballPosition).project(camera);
   }
   const cut=Math.max(0,Math.min(1,(viewMix-.08)/.86));cutRight.constant=THREE.MathUtils.lerp(4.5,-1.7,cut);cutFront.constant=THREE.MathUtils.lerp(4.5,-2.0,cut);renderer.clippingPlanes=viewMix>0?[cutRight,cutFront]:[];

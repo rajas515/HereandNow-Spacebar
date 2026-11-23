@@ -21,21 +21,45 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 /* Corner HUD, herenowtest-style: site top-left, where you are bottom-left, map bottom-right. */
 .hud{position:fixed;z-index:5;margin:0;font:11px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--ui)}
 .hud a{color:inherit;text-decoration:none}
-.hud-top{top:16px;left:22px;right:22px;display:flex;justify-content:space-between;pointer-events:none}
-.hud-top a{pointer-events:auto}
-.hud-now{left:22px;bottom:22px;display:grid;gap:4px;pointer-events:none}
-.hud-now strong{font:20px Georgia,serif;text-transform:none;letter-spacing:0;color:var(--pink)}
-.hud-nav{right:22px;bottom:22px;display:grid;gap:8px;justify-items:end}
-.nav-buttons{display:flex;border:1px solid var(--ui-line);border-radius:16px;background:#1a1d4aeb}
-.nav-buttons button{font:inherit;color:inherit;background:none;border:0;padding:7px 11px;cursor:pointer}
-.nav-buttons button[aria-pressed=true]{color:var(--pink)}
-#minimap{width:120px;height:150px;border:1px solid var(--ui-line);border-radius:12px;background:#1a1d4aeb;cursor:pointer}
-#minimap rect.room{fill:none;stroke:var(--ui);stroke-opacity:.45}
-#minimap rect.room.active{fill:var(--pink);fill-opacity:.25;stroke:var(--pink);stroke-opacity:1}
-#minimap rect.view{fill:none;stroke:#ffe0ef;stroke-dasharray:2 2}
-/* During Act I the opening owns the screen: map controls step aside. */
-.hud-nav{transition:opacity .4s}
-.in-act1 .hud-nav{opacity:0;pointer-events:none}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+/* Top-right: the map toggle, a pill like herenowtest's. */
+.hud-tools{top:20px;right:22px;display:flex;border:1px solid var(--ui-line);border-radius:22px;background:#1a1d4ae0}
+.hud-tools button{font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ui);background:none;border:0;padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:8px}
+.hud-tools button:hover{color:var(--pink)}
+kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-radius:3px;padding:1px 4px;opacity:.75}
+/* Bottom-right: the minimap box. */
+.hud-mini{right:22px;bottom:22px;width:176px;padding:12px 12px 8px;border:1px solid var(--ui-line);border-radius:12px;background:#1a1d4ae0;text-transform:none}
+#minimap{display:block;width:100%;height:118px;cursor:pointer}
+#minimap rect.room{fill:none;stroke:var(--ui);stroke-opacity:.5;stroke-width:1}
+#minimap rect.room:hover{stroke:var(--pink);stroke-opacity:1}
+#minimap rect.room.active{fill:var(--pink);fill-opacity:.85;stroke:var(--pink);stroke-opacity:1}
+#minimap rect.view{fill:none;stroke:#ffe0ef;stroke-dasharray:2 2;pointer-events:none}
+#mini-foot{display:flex;justify-content:space-between;gap:8px;width:100%;margin-top:8px;padding:7px 0 0;border:0;border-top:1px solid var(--ui-line);background:none;color:var(--ui);cursor:pointer;
+  font:800 10px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;text-align:left}
+#mini-foot:hover{color:var(--pink)}
+#mini-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mini-count{white-space:nowrap}
+.hud-tools,.hud-mini{transition:opacity .4s}
+.in-act1 .hud-tools,.in-act1 .hud-mini,.map-open .hud-mini,.map-open .hud-tools{opacity:0;pointer-events:none}
+
+/* The map view: an index of the sections laid out as they sit in the world. */
+#map-view{position:fixed;inset:0;z-index:20;background:var(--paper);color:#e5dce9;opacity:0;transition:opacity .35s;font-family:Mulish,Arial,sans-serif}
+#map-view.shown{opacity:1}
+.map-head{position:absolute;left:48px;top:34px}
+.map-head p{margin:0 0 10px;font:900 11px Mulish,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--pink)}
+.map-head h2{margin:0;font:900 clamp(40px,6.4vw,92px)/.92 Mulish,Arial,sans-serif;letter-spacing:-.02em;text-transform:uppercase;color:#fff}
+#map-close{position:absolute;top:20px;right:22px;display:flex;align-items:center;gap:8px;padding:11px 16px;border:1px solid var(--ui-line);border-radius:22px;background:none;color:var(--ui);cursor:pointer;
+  font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+#map-close:hover{color:var(--pink);border-color:var(--pink)}
+.map-field{position:absolute;left:8vw;right:8vw;top:max(30vh,190px);bottom:5vh}
+.map-lines{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.map-lines path{fill:none;stroke:var(--ui);stroke-opacity:.45;stroke-width:1.2;stroke-dasharray:1.5 5;stroke-linecap:round}
+.map-item{position:absolute;left:0;top:0;width:min(15vw,230px);padding:6px 8px 8px;border-top:1px solid var(--ui);color:#fff;text-decoration:none;display:grid;gap:3px;outline:none}
+.map-num{font:900 10px Mulish,Arial,sans-serif;color:var(--pink)}
+.map-item strong{font:900 clamp(15px,1.55vw,24px)/1 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:-.01em}
+.map-go{font:800 9px Mulish,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--ui)}
+.map-item:hover strong,.map-item:focus-visible strong{color:var(--pink)}
+.map-item.current{outline:2px solid var(--pink);outline-offset:4px}
 
 /* The hint under the curatorial note once the opening has played. */
 .hud-hint{left:50%;bottom:28px;transform:translateX(-50%);opacity:0;transition:opacity .8s;pointer-events:none}
@@ -49,12 +73,41 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 .hud-skip:hover{color:var(--pink)}
 .skippable .hud-skip{opacity:1;pointer-events:auto}
 
-/* First arrival in Act II: a hand presses, drags across and lets go, once per visit. */
-.hud-pan-hint{left:50%;top:50%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:14px;padding:22px 26px 18px;border-radius:18px;background:#1a1d4acc;text-transform:none;letter-spacing:0;font:15px Georgia,serif;color:#e5dce9;opacity:0;transition:opacity .6s;pointer-events:none}
-.show-pan-hint .hud-pan-hint{opacity:1}
-.hud-pan-hint svg{width:52px;height:52px;fill:none;stroke:var(--pink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:pan-hand 2.6s ease-in-out infinite}
-@keyframes pan-hand{0%,12%{transform:translateX(0) scale(1)}20%{transform:translateX(0) scale(.86)}45%{transform:translateX(-26px) scale(.86)}70%{transform:translateX(26px) scale(.86)}82%{transform:translateX(0) scale(.86)}90%,100%{transform:translateX(0) scale(1)}}
-@media (prefers-reduced-motion:reduce){.hud-pan-hint svg{animation:none}}
+/* Section intro (reference: Where Are They Now comp). Measured from the screen centre in vh,
+   like the cards, so it sits on the composition at any screen size. */
+.hud-section{inset:0;pointer-events:none;opacity:0;visibility:hidden;transition:opacity .45s,visibility 0s .45s;text-transform:none;letter-spacing:0;color:#fff}
+.show-section .hud-section{opacity:1;visibility:visible;transition:opacity .6s .15s}
+/* The title is fitted in perspective between four anchors on the card (exhibition.js placeIntro):
+   set large here and transformed down, so it stays crisp. */
+#sec-title{position:absolute;left:0;top:0;margin:0;text-align:right;white-space:nowrap;transform-origin:0 0;
+  font:900 96px/.9 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:.02em}
+#sec-title span{display:block}
+#sec-text{position:absolute;transform-origin:0 0;width:min(38.5vh,calc(100% - 32px));margin:0;font:500 max(13px,1.75vh)/1.4 Mulish,Arial,sans-serif}
+/* Anchor marks: the title's corner points and dashed frame, and the description's square, are
+   part of the look (they fade with the intro). In ?arrange the points are handles to drag. */
+.intro-handle{position:absolute;width:14px;height:14px;margin:-8px;border:2px solid var(--pink);border-radius:50%;background:#1a1d4acc;pointer-events:none}
+.intro-handle.text{border-radius:2px}
+.arranging .intro-handle{pointer-events:auto;cursor:move}
+#sec-title{outline:3px dashed #ff9ccfaa}
+.arranging #sec-enter{display:none}
+/* Enter: a button where the comp puts it on touch screens; with a mouse it is the cursor itself. */
+#sec-enter{position:absolute;left:calc(50% + 16vh);top:77.3vh;pointer-events:auto;cursor:pointer;padding:.45vh 1.1vh;border:1.5px solid #fff;border-radius:2px;background:transparent;color:#fff;
+  font:800 max(12px,1.75vh)/1.2 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+#sec-enter:focus-visible{color:var(--pink);border-color:var(--pink);outline:none}
+@media (hover:hover) and (pointer:fine){
+  #sec-enter{left:0;top:0;pointer-events:none;transform:translate(var(--cursor-x,-200px),var(--cursor-y,-200px)) translate(-50%,-50%);opacity:0;transition:opacity .2s}
+  .cursor-in #sec-enter,#sec-enter:focus-visible{opacity:1}
+  .over-scene #viewport{cursor:none}
+  .cursor-in:not(.over-scene) #sec-enter{opacity:0}
+}
+
+/* Guides: arrows on the screen's edge towards nearby chapters (exhibition.js updateGuides). */
+#guides{position:fixed;inset:0;z-index:4;pointer-events:none}
+.guide{position:absolute;left:0;top:0;width:44px;height:44px;padding:0;border:0;background:none;color:#e5dce9;cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .35s,color .2s;--near:1}
+.guide.on{opacity:calc(.4 + var(--near) * .6);pointer-events:auto}
+.guide:hover{color:var(--pink);opacity:1}
+.guide svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;display:block;margin:auto}
 
 /* Arrange mode (/exhibition/?arrange): every card box is grabbable and outlined. */
 .arranging .frame,.arranging .node .placeholder{pointer-events:auto;cursor:move;outline:1px dashed #ff9ccf88;outline-offset:-1px}
@@ -63,6 +116,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 .hud-arrange button{font:inherit;color:inherit;background:none;border:1px solid var(--ui-line);border-radius:12px;padding:5px 10px;cursor:pointer}
 .hud-arrange button:hover{color:var(--pink)}
 @media (max-width:650px){
-  .hud-top,.hud-now{left:12px}.hud-top{right:12px}.hud-nav{right:12px;bottom:12px}.hud-now{bottom:12px;max-width:calc(100vw - 130px)}
-  .hud-now strong{font-size:16px}#minimap{width:84px;height:104px}
+  .hud-tools{right:12px;top:12px}.hud-mini{right:12px;bottom:12px;width:128px}#minimap{height:84px}
+  .map-head{left:20px}.map-field{left:20px;right:20px}.map-item{width:38vw}
 }
