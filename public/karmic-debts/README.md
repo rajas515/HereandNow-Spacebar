@@ -16,13 +16,14 @@ outside the repo.
   the table in the close view are kept for the coming interaction); Enter toggles. The move takes
   2.6 s, stepped at 24 fps with cubic easing, blending camera position, look-at point and lens;
   the orbit eases to 40% in the close view. Close camera: `closeCam*`, `closeLook*`, `closeLens`.
-- **Paper cut-out** (`cutout.js`), as in the other room cards: the annotated wide and close
-  outlines (`WIDE_OUTLINE`, `CLOSE_OUTLINE`, image pixels of a 1.4 card) become soft fields, and every
-  surface keeps or drops its pixels by projecting its world position through the camera each outline
-  was drawn from (the un-orbited wide and close views). The cut lives on the geometry, so with the orbit
-  its edges slide along walls, floor and furniture. During the zoom the two fields blend by the zoom
-  amount (stepped with it), so the outline morphs from the corner to the table across the surfaces.
-  Colour, normal/depth and shadow passes share the cut. Card-local, so the shared cutout is untouched.
+- **Paper cut-out** (`cutout.js`), the way In the Life Of and the disco room cut theirs: the wide
+  annotation is a hard-edged mask with a fibrous paper edge, projected from the un-orbited wide camera
+  onto the world, so its edges stay on the surfaces and slide as the view orbits. Zooming in, straight
+  world clipping planes (left, partition depth, front of the table, top) sweep in one after another,
+  stepped with the zoom; the camera push starts once they have entered the room. They stop on the close
+  annotation, measured into the room (`CLOSE_PLANES`): the room shell takes them tight, the furniture
+  around the table a looser set, so the stool and the bench end stay whole past the shell's cut.
+  Colour, normal/depth and shadow passes share the cut. Card-local; the shared cutout is untouched.
 - **Built like the other room cards (disco, Will):** the shared print pass; the model's own
   materials made matte; a warm sun through the partition with a 2048 soft shadow map (cached,
   redrawn only when tuning changes), sky/ground fill. No garden here: the partition is plain

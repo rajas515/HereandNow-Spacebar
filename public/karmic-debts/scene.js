@@ -136,6 +136,24 @@ try {
   }
 
   // ---- merge the room per material; keep the table props as their own objects ----
+  // Each part is either room shell or furniture: the close cut takes the shell tight and leaves
+  // the furniture around the table whole (cutout.js). Furniture gets its own copy of a material,
+  // since the two sets are clipped by different planes.
+  const SHELL = /wall|floor|glass|mullion|transom|infill|roof beam|cross beam|skylight|skirting|column|^AC |fan |noticeboard|wire|cable|lead|socket|door|lever|closer/i;
+  const groupFor = name => /bench|stool|chair|table|desk|printer|monitor|keyboard|paper|sheets|display|caster|leg|crossbar|foot/i.test(name) ? 'furniture'
+    : SHELL.test(name) ? 'shell' : 'furniture';
+  const furnitureMaterials = new Set();
+  function forGroup(material, group) {
+    if (group === 'shell') return material;
+    const key = material.uuid + '|furniture';
+    if (!looks.has(key)) {
+      const copy = material.clone();
+      copy.userData = {...material.userData, look: material.userData.look && {...material.userData.look}};
+      looks.set(key, copy);
+      furnitureMaterials.add(copy);
+    }
+    return looks.get(key);
+  }
   const room = new THREE.Group(), props = new THREE.Group();
   room.name = 'room';
   props.name = 'table-props';
@@ -145,9 +163,11 @@ try {
   for (const mesh of meshes) {
     let top = mesh;
     while (top.parent && top.parent !== model) top = top.parent;
-    const material = restyle(mesh.material);
+    const group = PROPS.test(mesh.name) || PROPS.test(top.name) ? 'furniture' : groupFor(top.name + ' ' + mesh.name);
+    const material = forGroup(restyle(mesh.material), group);
     if (PROPS.test(mesh.name) || PROPS.test(top.name)) {
       const prop = new THREE.Mesh(mesh.geometry, material);
+      prop.userData.cutGroup = 'furniture';
       mesh.matrixWorld.decompose(prop.position, prop.quaternion, prop.scale);
       prop.name = top.name;
       prop.castShadow = prop.receiveShadow = true;
@@ -160,6 +180,7 @@ try {
   }
   for (const [material, list] of byMaterial) {
     const merged = new THREE.Mesh(mergeGeometries(list), material);
+    merged.userData.cutGroup = furnitureMaterials.has(material) ? 'furniture' : 'shell';
     const isGlass = material.userData.look?.group === 'glass';   // light passes the frosted panes
     merged.castShadow = !isGlass;
     merged.receiveShadow = !isGlass;
@@ -189,7 +210,6 @@ try {
   // ---- the paper cut-out, wide and close (cutout.js), anchored to the two un-orbited views ----
   const cut = createCut(renderer, scene, pass);
   const wideAnchor = new THREE.PerspectiveCamera(60, HOME_ASPECT, .05, 40);
-  const closeAnchor = new THREE.PerspectiveCamera(60, HOME_ASPECT, .05, 40);
   function aim(anchor, x, y, z, lx, ly, lz, lens) {
     anchor.position.set(x, y, z);
     anchor.up.set(0, 1, 0);
@@ -282,14 +302,16 @@ try {
 
   function frameCamera(dt) {
     // The orbit eases off in the close view, as disco's parallax does.
-    const look = THREE.MathUtils.degToRad(tuning.orbit) * THREE.MathUtils.lerp(1, .4, viewMix);
+    // The planes enter the room first; the camera push follows (as In the Life Of).
+    const push = THREE.MathUtils.smoothstep(viewMix, .18, 1);
+    const look = THREE.MathUtils.degToRad(tuning.orbit) * THREE.MathUtils.lerp(1, .4, push);
     orbitGoal.copy(mapLook).multiplyScalar(.7);
     if (pointer.inside && !reduced) orbitGoal.addScaledVector(pointer.ndc, .3);
     orbitGoal.clampScalar(-1, 1);
     orbitNow.x = THREE.MathUtils.damp(orbitNow.x, orbitGoal.x, 3, dt);
     orbitNow.y = THREE.MathUtils.damp(orbitNow.y, orbitGoal.y, 3, dt);
-    eye.set(tuning.camX, tuning.camY, tuning.camZ).lerp(closeEye.set(tuning.closeCamX, tuning.closeCamY, tuning.closeCamZ), viewMix);
-    target.set(tuning.lookX, tuning.lookY, tuning.lookZ).lerp(closeTarget.set(tuning.closeLookX, tuning.closeLookY, tuning.closeLookZ), viewMix);
+    eye.set(tuning.camX, tuning.camY, tuning.camZ).lerp(closeEye.set(tuning.closeCamX, tuning.closeCamY, tuning.closeCamZ), push);
+    target.set(tuning.lookX, tuning.lookY, tuning.lookZ).lerp(closeTarget.set(tuning.closeLookX, tuning.closeLookY, tuning.closeLookZ), push);
     // Turn about the point looked at: sideways about the vertical, up/down about the view's right.
     right.subVectors(target, eye).cross(up).normalize();
     turn.setFromAxisAngle(up, -orbitNow.x * look);
@@ -299,7 +321,7 @@ try {
     camera.up.set(0, 1, 0);
     camera.lookAt(target);
     // Lens: horizontal angle of `lens` mm on 36 mm film at the home shape; wider frames keep the height.
-    const lens = THREE.MathUtils.lerp(tuning.lens, tuning.closeLens, viewMix);
+    const lens = THREE.MathUtils.lerp(tuning.lens, tuning.closeLens, push);
     const homeV = 2 * Math.atan(Math.tan(Math.atan(18 / lens)) / HOME_ASPECT);
     const aspect = size.width / size.height;
     camera.aspect = aspect;
@@ -318,8 +340,7 @@ try {
     lastDraw = time;
     stepZoom(time);
     aim(wideAnchor, tuning.camX, tuning.camY, tuning.camZ, tuning.lookX, tuning.lookY, tuning.lookZ, tuning.lens);
-    aim(closeAnchor, tuning.closeCamX, tuning.closeCamY, tuning.closeCamZ, tuning.closeLookX, tuning.closeLookY, tuning.closeLookZ, tuning.closeLens);
-    cut.update(wideAnchor, closeAnchor, viewMix);
+    cut.update(wideAnchor, viewMix);
     applyLook();
     frameCamera(dt);
     pass.render(scene, camera, time / 1000);
