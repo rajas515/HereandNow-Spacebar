@@ -29,7 +29,8 @@ html.map-embedded,html.map-embedded body{background:transparent!important}html.m
 #where-now button{font:inherit;color:inherit;border:0;border-radius:0;margin:0;cursor:pointer;display:block}
 #where-now button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 #where-now.is-live .wn-list,#where-now.is-live .wn-card{pointer-events:auto}
-.wn-list{position:absolute;right:calc(var(--u)*.4);top:calc(var(--u)*5.2);width:calc(var(--u)*19);display:flex;flex-direction:column;gap:calc(var(--u)*.6);transform:rotate(-2.5deg);transform-origin:100% 0}
+.wn-list{position:absolute;right:calc(var(--u)*.4);top:calc(var(--u)*5.2);width:calc(var(--u)*19);display:flex;flex-direction:column;gap:calc(var(--u)*.6);transform:perspective(calc(var(--u)*150)) rotateY(24deg);transform-origin:100% 50%}
+/* The list lies in the room's perspective: its right edge, against the room, is the far one, so the top and bottom edges run on into the left wall's lines. */
 .wn-batch{display:flex;flex-direction:column;gap:calc(var(--u)*.6)}
 .wn-tab{width:100%;height:calc(var(--u)*4.9);padding:0;background:var(--wn-lilac);font-size:calc(var(--u)*2.5)!important;font-weight:500!important;text-align:center}
 .wn-tab:hover{background:var(--wn-pink)}
