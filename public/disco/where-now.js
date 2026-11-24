@@ -102,10 +102,8 @@ export function createWhereNow(host, stage) {
       // size against the room; it only shrinks when the list and card would not fit what is seen.
       const unit = Math.min((q.y - b.y) * .5 * pass.cardSize.y * height / ROOM_SPAN,
         (seen.right - seen.left) / (LIST_WIDTH + CARD.width + 4), (seen.bottom - seen.top) / LIST_HEIGHT);
-      // At the room's corner, but never off what is seen: the pair moves in from the edges.
-      const cx = (q.x * .5 * pass.cardSize.x + pass.cardCenter.x) * width, cy = (1 - (q.y * .5 * pass.cardSize.y + pass.cardCenter.y)) * height;
-      const x = Math.max(seen.left + (LIST_WIDTH + 2) * unit, Math.min(seen.right - (CARD.width + 2) * unit, cx));
-      const y = Math.max(seen.top + 2 * unit, Math.min(seen.bottom - (CARD.height + 4) * unit, cy));
+      // Stuck to the room's corner: the pair pans with the room and is never held back at the window's edge.
+      const x = (q.x * .5 * pass.cardSize.x + pass.cardCenter.x) * width, y = (1 - (q.y * .5 * pass.cardSize.y + pass.cardCenter.y)) * height;
       const show = Math.max(0, Math.min(1, (mix - .8) / .2));
       const key = `${x.toFixed(1)},${y.toFixed(1)},${unit.toFixed(3)},${show.toFixed(2)}`;
       if (key === last) return;
