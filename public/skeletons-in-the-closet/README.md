@@ -64,3 +64,22 @@ The mannequin inset no longer folds or hides: it remains open while following th
 Main cut: cut-outline.js traces the cyan annotation and maps it through the inverse authored lens into a fixed world-camera cut. It follows the room during pan and affects color, normals/depth and shadow casters consistently. The mannequin inset temporarily bypasses only this silhouette mask, retaining its own card outline and the room's physical bounds.
 
 Latest cyan revision restores the shared top wall to the dotted line and deepens the right glazing notch along the solid line. The fixed world anchor and lower/left silhouette are retained.
+
+## Confess to unlock a confession (`confessions.js`)
+A speech bubble under the mannequin inset, its tail pointing up into it (the reference bubble's shape,
+mirrored and turned over), styled like the auction's Estate Sale card: flat, square corners, no shadow.
+The inset is raised just enough for the bubble to sit below it inside the card (the exhibition clips a
+card to its frame), and the bubble follows the inset as the room pans. The visitor types a confession
+("Tell me a secret", Submit & reveal) and one from the closet is revealed, text only, with a plain ×
+and "Another one" (confessions shown in quotes); the buttons are cut to the dark band's slanted edges. No backend: what
+visitors type is not kept; the six seeded confessions (`SEED`) cycle in a shuffled order whose place is
+remembered in the browser (`skeletons-confessions-v2`). Sized by the stage height.
+Pinning: the inset and the bubble are pinned to the room's near-left corner (the cut outline's
+lower-left point, `CORNER_TRACE` in cut-outline.js, traced onto the near cut face at z = 3.2). Each
+frame that point is projected through the current camera, pan and lens, and the pair keep the layout
+of the card's own page relative to it in stage-height units (`PIN` in mannequin-inset.js), so they stay
+on that corner when panning, in the wider exhibition frame and under its world pan.
+Adjust > Position (from the room corner): across, up/down and size for the zoom card (mannequin inset)
+and the confession card, in stage-height units from the corner marker, saved with the card's other
+settings (`green-hour-skeletons-in-the-closet-v1`). "Copy position" copies the six values to make them
+the defaults (`insetX`, `insetY`, `insetSize`, `bubbleX`, `bubbleY`, `bubbleSize` in scene.js).

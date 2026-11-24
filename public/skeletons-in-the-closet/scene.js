@@ -11,6 +11,7 @@ import {roomCutOutline} from './cut-outline.js';
 import {createWindowBackgrounds} from './windows.js';
 import {createDaylight} from './daylight.js';
 import {createMannequinInset} from './mannequin-inset.js';
+import {createConfessions} from './confessions.js';
 
 const assetUrl=path=>new URL(path,import.meta.url).href;
 
@@ -19,14 +20,16 @@ export async function mount(host){
 let mapViewportState={};
 let mapColor={},mapPrint={},mapBridge;
 
-let mannequinInset,lastInsetDraw=0;
+let mannequinInset,lastInsetDraw=0,confessions;
 const daylight=createDaylight();
 const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage'),embedded=host.embedded;
 // Blue accent shard behind the room (shared/accent.js, disco's backing), traced from the exhibition comp.
 addAccent(host,stage,[[-.2723,.1067],[.4765,.0085],[.9591,.5368],[.068,1.1144]],canvas);
 if(embedded)host.documentElement.classList.add('map-embedded');
 const KEY='green-hour-skeletons-in-the-closet-v1';
-const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.12,quality:'balanced',floorLight:-.35,roomLight:0,objectLight:-.15,windowLight:-.35,floorWarmth:-.15,roomWarmth:0,objectWarmth:.08,windowWarmth:-.1};
+const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.12,quality:'balanced',floorLight:-.35,roomLight:0,objectLight:-.15,windowLight:-.35,floorWarmth:-.15,roomWarmth:0,objectWarmth:.08,windowWarmth:-.1,
+ // Zoom card (mannequin inset) and confession card, placed from the room-corner marker in stage-height units.
+ insetX:-.195,insetY:-.375,insetSize:1,bubbleX:-.005,bubbleY:-.145,bubbleSize:1};
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}');}catch{}
 let settings={...defaults,...saved},paused=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const reduced=paused,pan=new THREE.Vector2(),pointer=new THREE.Vector2(),smooth=new THREE.Vector2(),rest=new THREE.Vector2();
@@ -50,7 +53,7 @@ function configure(){
  for(const region of ['room','ball','foliage'])for(const [k,v] of Object.entries({exposure:Number(settings.exposure)+Number(region==='ball'?settings.objectLight:region==='foliage'?settings.windowLight:settings.roomLight),contrast:1.12,shadows:-.08,highlights:0,saturation:1,temperature:Number(region==='ball'?settings.objectWarmth:region==='foliage'?settings.windowWarmth:settings.roomWarmth),tint:0,value:0}))pass.setGrade(region,k,v);
  pass.uniforms.uFloor0.value.set(Number(settings.exposure)+Number(settings.floorLight),1.05,-.02,.08);pass.uniforms.uFloor1.value.set(.8,Number(settings.floorWarmth),-.12,0);
  $('#print').setAttribute('aria-pressed',String(printed));$('#material').setAttribute('aria-pressed',String(!printed));
- for(const k of ['riso','sketch','exposure','lens','width','quality','floorLight','roomLight','objectLight','windowLight','floorWarmth','roomWarmth','objectWarmth','windowWarmth'])$('#'+k).value=settings[k];applyMapAppearance(pass,mapColor,mapPrint);
+ for(const k of ['riso','sketch','exposure','lens','width','quality','floorLight','roomLight','objectLight','windowLight','floorWarmth','roomWarmth','objectWarmth','windowWarmth','insetX','insetY','insetSize','bubbleX','bubbleY','bubbleSize'])$('#'+k).value=settings[k];applyMapAppearance(pass,mapColor,mapPrint);
  dirty=true;wake();
 }
 function resize(){
@@ -104,14 +107,17 @@ async function init(){try{
  const anchor=camera.clone();anchor.clearViewOffset();anchor.fov=camera.fov;anchor.updateProjectionMatrix();clipping.setAnchor(anchor);
  renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
  await renderer.compileAsync(scene,camera);await renderer.compileAsync(pass.scene,pass.camera);
- mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer);
+ mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer,(x,y,h)=>confessions?.pin(x,y,h,settings));
+ // Confess to unlock a confession: a speech bubble from the mannequin inset (confessions.js).
+ confessions=createConfessions(host,stage);
  loaded=true;$('#loading').hidden=true;dirty=true;wake();
 }catch(error){console.error(error);$('#loading').hidden=true;$('#error').hidden=false;canvas.dataset.state='error';}}
 for(const mode of ['print','material'])$('#'+mode).onclick=()=>{settings.mode=mode;persist();configure();};
-for(const k of ['riso','sketch','exposure','lens','width','quality','floorLight','roomLight','objectLight','windowLight','floorWarmth','roomWarmth','objectWarmth','windowWarmth'])$('#'+k).addEventListener('input',e=>{settings[k]=k==='quality'?e.target.value:Number(e.target.value);persist();configure();if(k==='quality')resize();});
+for(const k of ['riso','sketch','exposure','lens','width','quality','floorLight','roomLight','objectLight','windowLight','floorWarmth','roomWarmth','objectWarmth','windowWarmth','insetX','insetY','insetSize','bubbleX','bubbleY','bubbleSize'])$('#'+k).addEventListener('input',e=>{settings[k]=k==='quality'?e.target.value:Number(e.target.value);persist();configure();if(k==='quality')resize();});
 $('#settings').onclick=()=>{const open=$('#controls').hidden;$('#controls').hidden=!open;$('#settings').setAttribute('aria-expanded',String(open));};
 function motion(){ $('#motion').textContent=paused?'Resume':'Pause';$('#motion').setAttribute('aria-label',paused?'Resume scene motion':'Pause scene motion');$('#motion').setAttribute('aria-pressed',String(paused));}
 $('#motion').onclick=()=>{paused=!paused;motion();dirty=true;wake();};motion();
+$('#copy-position').onclick=async()=>{const text=JSON.stringify(Object.fromEntries(['insetX','insetY','insetSize','bubbleX','bubbleY','bubbleSize'].map(k=>[k,settings[k]])),null,2);try{await navigator.clipboard.writeText(text);$('#copy-position').textContent='Copied';}catch{prompt('Copy these values',text);}setTimeout(()=>{$('#copy-position').textContent='Copy position';},1500);};
 $('#reset').onclick=()=>{settings={...defaults};pan.set(0,0);persist();configure();resize();};$('#retry').onclick=()=>location.reload();
 let down=null;
 canvas.addEventListener('pointerdown',e=>{if(e.button===0){down={x:e.screenX,y:e.screenY,lastX:e.screenX,lastY:e.screenY,moved:false};canvas.setPointerCapture(e.pointerId);}});
