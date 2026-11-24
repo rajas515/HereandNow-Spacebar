@@ -20,7 +20,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-25-cards9';
+const ASSET_VERSION = '2026-11-25-cards11';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 

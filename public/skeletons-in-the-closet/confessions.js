@@ -1,11 +1,11 @@
 // Skeletons in the closet: confess to unlock a confession.
-// A speech bubble from the mannequin in the inset (the shape of the reference bubble, flipped so
-// its tail points down at the figure), styled like the auction's Estate Sale card. A visitor types
-// a confession; it joins the closet and an earlier one, not their own, is revealed in return.
+// A speech bubble under the mannequin inset, its tail pointing up into the frame (the reference
+// bubble's shape, mirrored and turned over), styled like the auction's Estate Sale card: flat, no
+// rounded corners, no shadow. A visitor types a confession and one from the closet is revealed in
+// return; "Submit another one" asks again.
 //
-// The closet is seeded with SEED below. A visitor's own confessions are kept in their browser
-// (localStorage), like the auction's bids: there is no shared server, so a confession reaches other
-// visitors only once it is added to SEED.
+// No backend for now: what visitors type is not kept anywhere. The closet is SEED, revealed in a
+// shuffled order that cycles (the place in the cycle is remembered in the browser).
 
 export const SEED = [
   'Stole more than 20,000 rs worth of stuff from exib.',
@@ -15,72 +15,86 @@ export const SEED = [
   'Saw a couple go at it in the centre of the studio, on the floor, during a party.',
   'Got caught with substances at a party when we didn’t even want to party (pretty long-lasting consequences).',
 ];
-const KEY = 'skeletons-confessions-v1';
+const KEY = 'skeletons-confessions-v2';
 
-// The reference bubble (863 × 514 px), mirrored left to right.
-const SHAPE = '763,110 278,145 283,123 80,145 111,340 350,350 313,398 353,413 313,458 408,404 433,378 703,383 808,180';
-const STRIP = '748,256 111,272 123,328 703,345';
+// viewBox 70 100 750 370. The body spans y ≈ 187–460; the tail rises to y 112.
+const SHAPE = '763,460 278,425 283,447 80,425 111,230 350,220 313,172 353,157 313,112 408,166 433,192 703,187 808,390';
+const STRIP = '118,342 752,350 744,420 128,410';                 // the dark band, along the bottom edge
+const BUTTON = {x: 512, y: 352, width: 226, height: 60,          // the button at the band's right end,
+  clip: 'polygon(0 0,100% 2%,96% 100%,2% 97%)'};                  // its edges following the band's
+const TAIL = {x: (333 - 70) / 750, y: (112 - 100) / 370};          // tail tip, as fractions of the bubble
 
 const esc = text => text.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
-export function createConfessions(host, stage) {
-  let state = {mine: [], seen: []};
+export function createConfessions(host, stage, inset) {
+  let state = {order: null, at: 0};
   try { state = {...state, ...JSON.parse(localStorage.getItem(KEY) || '{}')}; } catch {}
+  if (!Array.isArray(state.order) || state.order.length !== SEED.length) {
+    state.order = SEED.map((text, i) => i).sort(() => Math.random() - .5);
+    state.at = 0;
+  }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
-  const pool = () => SEED.concat(state.mine);
 
   const bubble = document.createElement('section');
   bubble.id = 'confession';
   bubble.setAttribute('aria-label', 'Confess to unlock a confession');
-  bubble.innerHTML = `<svg viewBox="70 100 750 370" xmlns="http://www.w3.org/2000/svg" aria-hidden="false">
+  bubble.innerHTML = `<svg viewBox="70 100 750 370" xmlns="http://www.w3.org/2000/svg">
     <polygon class="bubble-shape" points="${SHAPE}"/>
     <polygon class="bubble-strip" points="${STRIP}"/>
-    <foreignObject x="140" y="150" width="610" height="104"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-top"></div></foreignObject>
-    <foreignObject x="150" y="270" width="570" height="64"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-strip-content"></div></foreignObject>
+    <foreignObject x="135" y="228" width="640" height="110"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-top"></div></foreignObject>
+    <foreignObject x="150" y="352" width="345" height="56"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-field"></div></foreignObject>
+    <foreignObject x="${BUTTON.x}" y="${BUTTON.y}" width="${BUTTON.width}" height="${BUTTON.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-action"></div></foreignObject>
   </svg>`;
   stage.append(bubble);
-  const top = bubble.querySelector('.bubble-top'), strip = bubble.querySelector('.bubble-strip-content');
+  const top = bubble.querySelector('.bubble-top'), field = bubble.querySelector('.bubble-field'), action = bubble.querySelector('.bubble-action');
   // Typing and clicking here belong to the bubble, not to the room's pan.
   for (const type of ['pointerdown', 'pointermove', 'wheel', 'dblclick']) bubble.addEventListener(type, e => e.stopPropagation());
+  const button = label => `<button type="button" style="clip-path:${BUTTON.clip}">${label}</button>`;
 
-  function ask(note = '') {
+  function ask() {
     bubble.dataset.view = 'ask';
-    top.innerHTML = `<h2>Confess to unlock a confession</h2>${note ? `<p class="note">${esc(note)}</p>` : ''}`;
-    strip.innerHTML = `<form class="confess"><input name="secret" maxlength="280" autocomplete="off" placeholder="Tell me a secret" aria-label="Your confession" required><button type="submit">Submit &amp; reveal</button></form>`;
-    const form = strip.querySelector('form'), input = form.secret;
-    form.addEventListener('submit', event => {
+    top.innerHTML = '<h2>Confess to unlock a confession</h2>';
+    field.innerHTML = '<form id="confess-form"><input name="secret" maxlength="280" autocomplete="off" placeholder="Tell me a secret" aria-label="Your confession" required></form>';
+    action.innerHTML = button('Submit &amp; reveal');
+    const form = field.querySelector('form');
+    const submit = event => {
       event.preventDefault();
-      const text = input.value.trim().replace(/\s+/g, ' ');
-      if (!text) { input.focus(); return; }
-      state.mine.push(text);
-      const yours = pool().length;   // its number in the closet
-      save();
-      reveal(yours);
-    });
+      if (!form.secret.value.trim()) { form.secret.focus(); return; }
+      reveal();
+    };
+    form.addEventListener('submit', submit);
+    action.querySelector('button').addEventListener('click', submit);
   }
-  function reveal(yours) {
-    // One that is not theirs and not yet shown here; start over once all have been seen.
-    const all = pool(), theirs = new Set(state.mine);
-    let choices = all.map((text, i) => i).filter(i => !theirs.has(all[i]) && !state.seen.includes(i));
-    if (!choices.length) { state.seen = []; choices = all.map((text, i) => i).filter(i => !theirs.has(all[i])); }
-    const index = choices[Math.floor(Math.random() * choices.length)];
-    state.seen.push(index);
+  function reveal() {
+    const text = SEED[state.order[state.at % SEED.length]];
+    state.at = (state.at + 1) % SEED.length;
     save();
-    const text = all[index];
     bubble.dataset.view = 'reveal';
-    top.innerHTML = `<button class="close" type="button" aria-label="Close">×</button>
-      <p class="label">Confession ${index + 1}</p><p class="text${text.length > 70 ? ' long' : ''}">${esc(text)}</p>`;
-    strip.innerHTML = `<span class="who">— Anonymous</span><span class="kept">yours is no. ${yours}</span><button type="button" class="again">Submit another one</button>`;
-    const back = () => ask();
-    top.querySelector('.close').addEventListener('click', back);
-    strip.querySelector('.again').addEventListener('click', () => { ask(); strip.querySelector('input').focus(); });
+    top.innerHTML = `<button class="close" type="button" aria-label="Close">×</button><p class="text${text.length > 70 ? ' long' : ''}">${esc(text)}</p>`;
+    field.innerHTML = '';
+    action.innerHTML = button('Submit another one');
+    top.querySelector('.close').addEventListener('click', ask);
+    action.querySelector('button').addEventListener('click', () => { ask(); field.querySelector('input').focus(); });
   }
   ask();
-  // Sized by the stage's height, so it keeps its size beside the inset on the card's own page and
-  // in the wider exhibition frame alike.
-  const size = () => { if (stage.clientHeight) bubble.style.width = Math.min(stage.clientWidth * .34, stage.clientHeight * .5) + 'px'; };
-  new ResizeObserver(size).observe(stage);
-  size();
+
+  // ---- placement: under the inset, tail into it; sized by the stage's height ----
+  // The inset is raised just enough for the bubble to sit below it inside the card (the exhibition
+  // clips a card to its frame, so it cannot hang outside).
+  function place() {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    if (!W || !H) return;
+    const width = Math.min(W * .34, H * .5), height = width * 370 / 750;
+    // The inset's centre, without its pan translate (CSS: left -3%, width 29%).
+    const insetCentre = W * (-.03 + .29 / 2);
+    const bottom = H * .02;
+    bubble.style.width = width + 'px';
+    bubble.style.left = Math.max(W * .01, insetCentre - width * TAIL.x) + 'px';   // whole bubble inside the card
+    bubble.style.bottom = bottom + 'px';
+    inset.style.bottom = bottom + height * (1 - TAIL.y) - height * .1 + 'px';   // the tail tucks under its lower edge
+  }
+  new ResizeObserver(place).observe(stage);
+  place();
   return {
     // Follow the mannequin inset as the room pans (the same translate the inset gets).
     follow(transform) { if (bubble.style.transform !== transform) bubble.style.transform = transform; },

@@ -66,11 +66,11 @@ Main cut: cut-outline.js traces the cyan annotation and maps it through the inve
 Latest cyan revision restores the shared top wall to the dotted line and deepens the right glazing notch along the solid line. The fixed world anchor and lower/left silhouette are retained.
 
 ## Confess to unlock a confession (`confessions.js`)
-A speech bubble from the mannequin inset (the reference bubble's shape, mirrored so its tail points
-down at the figure; styled like the auction's Estate Sale card) follows the inset as the room pans.
-The visitor types a confession ("Tell me a secret", Submit & reveal); it joins the closet and an
-earlier one, never their own, is revealed: "Confession N", "— Anonymous", "yours is no. M", Submit
-another one, and a close button. The closet is seeded with six confessions (`SEED`). A visitor's own
-confessions and which ones they have seen are kept in their browser (`skeletons-confessions-v1`);
-there is no shared server, so new confessions reach other visitors only once added to `SEED`.
-The bubble is sized by the stage height, so it keeps its size in the wider exhibition frame.
+A speech bubble under the mannequin inset, its tail pointing up into it (the reference bubble's shape,
+mirrored and turned over), styled like the auction's Estate Sale card: flat, square corners, no shadow.
+The inset is raised just enough for the bubble to sit below it inside the card (the exhibition clips a
+card to its frame), and the bubble follows the inset as the room pans. The visitor types a confession
+("Tell me a secret", Submit & reveal) and one from the closet is revealed, text only, with a plain ×
+and "Submit another one"; the buttons are cut to the dark band's slanted edges. No backend: what
+visitors type is not kept; the six seeded confessions (`SEED`) cycle in a shuffled order whose place is
+remembered in the browser (`skeletons-confessions-v2`). Sized by the stage height.

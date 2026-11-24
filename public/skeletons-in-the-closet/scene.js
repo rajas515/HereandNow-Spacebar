@@ -104,7 +104,7 @@ async function init(){try{
  await renderer.compileAsync(scene,camera);await renderer.compileAsync(pass.scene,pass.camera);
  mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer);
  // Confess to unlock a confession: a speech bubble from the mannequin inset (confessions.js).
- insetCanvas=stage.querySelector('#mannequin-inset');confessions=createConfessions(host,stage);
+ insetCanvas=stage.querySelector('#mannequin-inset');confessions=createConfessions(host,stage,insetCanvas);
  loaded=true;$('#loading').hidden=true;dirty=true;wake();
 }catch(error){console.error(error);$('#loading').hidden=true;$('#error').hidden=false;canvas.dataset.state='error';}}
 for(const mode of ['print','material'])$('#'+mode).onclick=()=>{settings.mode=mode;persist();configure();};
