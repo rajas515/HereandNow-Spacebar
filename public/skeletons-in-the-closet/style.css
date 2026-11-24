@@ -6,3 +6,27 @@ canvas{touch-action:none;cursor:grab}
 .heading{gap:18px}.heading h1{font-size:clamp(23px,3vw,38px)}.heading>span{max-width:150px}@media(max-width:650px){.heading>span{display:none}.heading h1{font-size:25px}}
 
 #mannequin-inset{position:absolute;left:-3%;bottom:-2%;width:29%;height:47%;pointer-events:none;clip-path:polygon(0 0,100% 17%,94% 98%,2% 100%);z-index:3;filter:drop-shadow(3px 5px 3px #090b2544)}
+
+/* Confess to unlock a confession (confessions.js): a speech bubble from the mannequin inset,
+   styled like the auction's Estate Sale card. */
+#confession{position:absolute;left:5%;bottom:41%;width:34%;z-index:4;pointer-events:none;filter:drop-shadow(3px 5px 3px #090b2555);font-family:Mulish,Arial,sans-serif}
+#confession svg{display:block;width:100%;height:auto;overflow:visible}
+#confession .bubble-shape{fill:#ffc4f4;stroke:#842478;stroke-width:10;stroke-linejoin:miter;pointer-events:visiblePainted}
+#confession .bubble-strip{fill:#171944}
+#confession .bubble-top,#confession .bubble-strip-content{pointer-events:auto;width:100%;height:100%;color:#171944;box-sizing:border-box}
+#confession h2{margin:14px 0 0;font:400 40px/1.1 Mulish,Arial,sans-serif;color:#171944}
+#confession .note{margin:6px 0 0;font-size:20px;color:#842478}
+#confession .label{margin:0;font:600 19px Mulish,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#842478}
+#confession .text{margin:6px 40px 0 0;font:400 29px/1.18 Mulish,Arial,sans-serif;color:#171944}
+#confession .text.long{font-size:23px}
+#confession .close{position:absolute;right:0;top:0;width:34px;height:34px;padding:0;border:2px solid #842478;background:transparent;color:#842478;font:400 26px/1 Arial,sans-serif;cursor:pointer}
+#confession .bubble-top{position:relative}
+#confession .bubble-strip-content{display:flex;align-items:center;gap:14px;padding:0 6px 0 14px}
+#confession form{display:flex;align-items:flex-end;gap:16px;width:100%;margin:0}
+#confession input{flex:1;min-width:0;height:36px;border:0;border-bottom:2px solid #ffc1f2;background:transparent;color:#ffe9fb;font:400 22px Mulish,Arial,sans-serif;padding:0 2px;outline:none;border-radius:0}
+#confession input::placeholder{color:#ffc1f2;opacity:.85}
+#confession input:focus{border-bottom-color:#ff54c2}
+#confession button[type=submit],#confession .again{flex:none;height:40px;padding:0 16px;border:0;border-radius:0;background:#ff54c2;color:#171944;font:400 20px Mulish,Arial,sans-serif;cursor:pointer}
+#confession button[type=submit]:hover,#confession .again:hover,#confession button:focus-visible{background:#f987de;outline:2px solid #ffc1f2}
+#confession .who{color:#ffc1f2;font:italic 400 22px Mulish,Arial,sans-serif}
+#confession .kept{flex:1;color:#ffc1f2;opacity:.7;font-size:16px}

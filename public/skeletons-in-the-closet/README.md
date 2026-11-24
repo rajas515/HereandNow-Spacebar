@@ -64,3 +64,13 @@ The mannequin inset no longer folds or hides: it remains open while following th
 Main cut: cut-outline.js traces the cyan annotation and maps it through the inverse authored lens into a fixed world-camera cut. It follows the room during pan and affects color, normals/depth and shadow casters consistently. The mannequin inset temporarily bypasses only this silhouette mask, retaining its own card outline and the room's physical bounds.
 
 Latest cyan revision restores the shared top wall to the dotted line and deepens the right glazing notch along the solid line. The fixed world anchor and lower/left silhouette are retained.
+
+## Confess to unlock a confession (`confessions.js`)
+A speech bubble from the mannequin inset (the reference bubble's shape, mirrored so its tail points
+down at the figure; styled like the auction's Estate Sale card) follows the inset as the room pans.
+The visitor types a confession ("Tell me a secret", Submit & reveal); it joins the closet and an
+earlier one, never their own, is revealed: "Confession N", "— Anonymous", "yours is no. M", Submit
+another one, and a close button. The closet is seeded with six confessions (`SEED`). A visitor's own
+confessions and which ones they have seen are kept in their browser (`skeletons-confessions-v1`);
+there is no shared server, so new confessions reach other visitors only once added to `SEED`.
+The bubble is sized by the stage height, so it keeps its size in the wider exhibition frame.

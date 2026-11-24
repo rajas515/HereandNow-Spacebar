@@ -10,6 +10,7 @@ import {roomCutOutline} from './cut-outline.js';
 import {createWindowBackgrounds} from './windows.js';
 import {createDaylight} from './daylight.js';
 import {createMannequinInset} from './mannequin-inset.js';
+import {createConfessions} from './confessions.js';
 
 const assetUrl=path=>new URL(path,import.meta.url).href;
 
@@ -18,7 +19,7 @@ export async function mount(host){
 let mapViewportState={};
 let mapColor={},mapPrint={},mapBridge;
 
-let mannequinInset,lastInsetDraw=0;
+let mannequinInset,lastInsetDraw=0,confessions,insetCanvas;
 const daylight=createDaylight();
 const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage'),embedded=host.embedded;
 if(embedded)host.documentElement.classList.add('map-embedded');
@@ -68,7 +69,7 @@ function tick(now){
  atmosphere?.update(time);daylight.update(pan);
  if(Math.abs(pan.x-lightPanX)+Math.abs(pan.y-lightPanZ)>.015){sun.position.set(2+pan.x*.5,4.4,-3.8+pan.y*.22);sun.target.position.set(pan.x*.08,.4,.4);renderer.shadowMap.needsUpdate=true;lightPanX=pan.x;lightPanZ=pan.y;}
  renderer.toneMapping=THREE.NoToneMapping;renderer.info.reset();pass.render(scene,camera,time);
- if(now-lastInsetDraw>=1000/(quality.detailFps||24)){mannequinInset?.render(pan,smooth,time,settings);lastInsetDraw=now;}
+ if(now-lastInsetDraw>=1000/(quality.detailFps||24)){mannequinInset?.render(pan,smooth,time,settings);lastInsetDraw=now;if(insetCanvas)confessions?.follow(insetCanvas.style.transform);}
  if(embedded){canvas.dataset.renderedMapGrades=JSON.stringify(pass.grades);canvas.dataset.mapCamera=JSON.stringify({pan:pan.toArray(),view:camera.view});}
  canvas.dataset.state='ready';canvas.dataset.renderedSettings=JSON.stringify(settings);canvas.dataset.pan=JSON.stringify(pan.toArray());canvas.dataset.frames=String(++frames);canvas.dataset.drawCalls=String(renderer.info.render.calls);canvas.dataset.zoom='disabled';
  perfFrames++;if(now-perfStart>1200){$('#metrics').value=`${Math.round(perfFrames*1000/(now-perfStart))} fps Ã‚· ${renderer.info.render.calls} draws`;perfFrames=0;perfStart=now;}
@@ -102,6 +103,8 @@ async function init(){try{
  renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
  await renderer.compileAsync(scene,camera);await renderer.compileAsync(pass.scene,pass.camera);
  mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer);
+ // Confess to unlock a confession: a speech bubble from the mannequin inset (confessions.js).
+ insetCanvas=stage.querySelector('#mannequin-inset');confessions=createConfessions(host,stage);
  loaded=true;$('#loading').hidden=true;dirty=true;wake();
 }catch(error){console.error(error);$('#loading').hidden=true;$('#error').hidden=false;canvas.dataset.state='error';}}
 for(const mode of ['print','material'])$('#'+mode).onclick=()=>{settings.mode=mode;persist();configure();};
