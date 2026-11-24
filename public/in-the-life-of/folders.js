@@ -7,6 +7,9 @@ import * as THREE from '../shared/vendor/three.module.js';
 //
 // SHEETS: centre x, y (Blender metres, Z up) and rotation about Z, from the source file. In three.js
 // (Y up) a Blender point (x, y, z) is (x, z, -y), and the rotation is the same angle about +Y.
+// `to`: where a sheet is moved to. The one at (.62, 1.43) lay half on the dark cutting mat; it moves
+// to the nearest clear spot on the same table, found against every object on the tables in the
+// source file.
 const SHEETS = [
   {batch: 2015, x: -.58, y: -1.85, angle: .15},
   {batch: 2016, x: -.40, y: .10, angle: -.40},
@@ -14,9 +17,15 @@ const SHEETS = [
   {batch: 2018, x: .25, y: -1.55, angle: -.20},
   {batch: 2019, x: .10, y: -.13, angle: .25},
   {batch: 2020, x: .05, y: .85, angle: .70},
-  {batch: 2021, x: .59, y: -1.85, angle: .70},
-  {batch: 2022, x: .62, y: 1.43, angle: -.20},
+  {batch: 2021, x: .62, y: 1.43, angle: -.20, to: {x: .25, y: 1.44, angle: -.20}},
+  {batch: 2022, x: .59, y: -1.85, angle: .70},
 ];
+const placed = sheet => sheet.to || sheet;
+// Only the sheet's own surfaces are lifted out: its paper and the pencil sketch on it (colours from the
+// source materials, linear and sRGB). Whatever else lies under the same footprint (the cutting mat, a
+// bottle) stays with the tables.
+const SHEET_COLORS = [[.83, .82, .74], [.92, .92, .88], [.18, .19, .17], [.46, .47, .45]];
+const sheetColor = (r, g, b) => SHEET_COLORS.some(([cr, cg, cb]) => Math.abs(r - cr) < .03 && Math.abs(g - cg) < .03 && Math.abs(b - cb) < .03);
 const HALF = {u: .105, v: .1485};   // half the A-size sheet: .21 x .297
 const TOP = .763;                   // the sheets' height above the floor
 // Hover and selection must read through the shared print screen, which inks by lightness: the sheet
@@ -33,23 +42,24 @@ function world(sheet, u, v, y) {
   return new THREE.Vector3(sheet.x + c * u - s * v, y, -(sheet.y + s * u + c * v));
 }
 
-// The batch in pencil: a faint label lying on the sheet, upright for the overhead camera.
+// The batch, big and dark across the middle of the sheet, upright for the overhead camera.
 function labelTexture(text) {
   const canvas = document.createElement('canvas');
-  canvas.width = 512; canvas.height = 192;
+  canvas.width = 1024; canvas.height = 380;
   const g = canvas.getContext('2d');
-  g.fillStyle = 'rgba(42,18,56,.9)';
-  g.font = '800 150px Mulish, "Helvetica Neue", Arial, sans-serif';
+  g.fillStyle = '#1a0c2a';
+  g.font = '900 330px Mulish, "Helvetica Neue", Arial, sans-serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, 256, 100);
+  g.fillText(text, 512, 200);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
   return texture;
 }
 
-// room: the loaded studio; screenUp: the overhead camera's up vector (the label reads upright to it).
-export function createFolders(room, screenUp) {
+// room: the loaded studio; screenUp: the overhead camera's up vector (the label reads upright to it);
+// ink: the paper contour lines (table-paper-ink), moved along with a moved sheet.
+export function createFolders(room, screenUp, ink) {
   const source = room.getObjectByName('details-central');
   if (!source) return null;
   const geometry = source.geometry.index ? source.geometry.toNonIndexed() : source.geometry;
@@ -60,7 +70,7 @@ export function createFolders(room, screenUp) {
     a.fromBufferAttribute(position, i); b.fromBufferAttribute(position, i + 1); c.fromBufferAttribute(position, i + 2);
     const x = (a.x + b.x + c.x) / 3, y = (a.y + b.y + c.y) / 3, z = (a.z + b.z + c.z) / 3;
     let owner = -1;
-    if (y > TOP - .01 && y < TOP + .04) {
+    if (y > TOP - .01 && y < TOP + .04 && sheetColor(color.getX(i), color.getY(i), color.getZ(i))) {
       owner = SHEETS.findIndex(sheet => { const [u, v] = local(sheet, x, z); return Math.abs(u) < HALF.u + .006 && Math.abs(v) < HALF.v + .006; });
     }
     (owner < 0 ? keep : parts[owner]).push(i, i + 1, i + 2);
@@ -80,15 +90,41 @@ export function createFolders(room, screenUp) {
   source.geometry.dispose();
   source.geometry = rest;
 
+  // Moved sheets: their triangles and contour lines go from the source pose to the new one.
+  const move = (attribute, sheet, inside) => {
+    const to = placed(sheet);
+    for (let i = 0; i < attribute.count; i++) {
+      const [u, v] = local(sheet, attribute.getX(i), attribute.getZ(i));
+      if (inside && !(Math.abs(u) < HALF.u + .02 && Math.abs(v) < HALF.v + .02)) continue;
+      const w = world(to, u, v, attribute.getY(i));
+      attribute.setXYZ(i, w.x, w.y, w.z);
+    }
+    attribute.needsUpdate = true;
+  };
+  const inkPosition = ink?.geometry.attributes.position;
+  for (const sheet of SHEETS.filter(sheet => sheet.to)) {
+    if (!inkPosition) continue;
+    // A segment moves when both its ends lie on the sheet.
+    for (let i = 0; i < inkPosition.count; i += 2) {
+      const ends = [i, i + 1].map(k => local(sheet, inkPosition.getX(k), inkPosition.getZ(k)));
+      if (!ends.every(([u, v]) => Math.abs(u) < HALF.u + .02 && Math.abs(v) < HALF.v + .02)) continue;
+      for (const [k, [u, v]] of [[i, ends[0]], [i + 1, ends[1]]]) { const w = world(placed(sheet), u, v, inkPosition.getY(k)); inkPosition.setXYZ(k, w.x, w.y, w.z); }
+    }
+    inkPosition.needsUpdate = true;
+    ink.geometry.computeBoundingSphere();
+  }
+
   const angleUp = Math.atan2(-screenUp.x, -screenUp.z);   // rotation about Y that turns -Z to screenUp
   const folders = SHEETS.map((sheet, n) => {
     const mesh = new THREE.Mesh(pick(parts[n]), source.material.clone());
+    if (sheet.to) { move(mesh.geometry.attributes.position, sheet, false); mesh.geometry.computeBoundingSphere(); }
+    const at = placed(sheet);
     mesh.name = `folder-${sheet.batch}`;
     mesh.userData.batch = sheet.batch;
     mesh.castShadow = source.castShadow; mesh.receiveShadow = source.receiveShadow;
     // Outline: a flat band just outside the sheet's edge, shown on hover and while selected. A basic
     // material keeps it out of the print's normal pass, so it inks dark without adding contours.
-    const ring = (grow) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([su, sv]) => world(sheet, su * (HALF.u + grow), sv * (HALF.v + grow), TOP + .016));
+    const ring = (grow) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([su, sv]) => world(at, su * (HALF.u + grow), sv * (HALF.v + grow), TOP + .016));
     const inner = ring(.004), outer = ring(.004 + HOVER.band), points = [];
     for (let k = 0; k < 4; k++) {
       const a0 = inner[k], a1 = inner[(k + 1) % 4], b0 = outer[k], b1 = outer[(k + 1) % 4];
@@ -97,13 +133,13 @@ export function createFolders(room, screenUp) {
     const outline = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints(points), new THREE.MeshBasicMaterial({color: HOVER.outline, side: THREE.DoubleSide, toneMapped: false}));
     outline.name = `${mesh.name}-outline`; outline.visible = false;
     // Label: lies flat, turned with the sheet to whichever of its edges is nearest upright.
-    const turns = Math.round((angleUp - sheet.angle) / (Math.PI / 2));
-    const label = new THREE.Mesh(new THREE.PlaneGeometry(.16, .06), new THREE.MeshBasicMaterial({map: labelTexture(String(sheet.batch)), transparent: true, depthWrite: false, toneMapped: false}));
+    const turns = Math.round((angleUp - at.angle) / (Math.PI / 2));
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(.24, .09), new THREE.MeshBasicMaterial({map: labelTexture(String(sheet.batch)), transparent: true, depthWrite: false, toneMapped: false}));
     label.name = `${mesh.name}-label`;
     label.rotation.order = 'YXZ';
-    label.rotation.set(-Math.PI / 2, sheet.angle + turns * Math.PI / 2, 0);
+    label.rotation.set(-Math.PI / 2, at.angle + turns * Math.PI / 2, 0);
     const toward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), label.rotation.y);   // the label's up on the table
-    label.position.copy(world(sheet, 0, 0, TOP + .02)).addScaledVector(toward, -.075);   // in the sheet's lower part, clear of the sketch
+    label.position.copy(world(at, 0, 0, TOP + .02)).addScaledVector(toward, 0);   // across the middle of the sheet
     label.renderOrder = 2;
     for (const o of [mesh, outline, label]) o.userData.central = true;   // cut with the tables, not the room (stage-clipping)
     room.add(mesh, outline, label);
@@ -116,7 +152,7 @@ export function createFolders(room, screenUp) {
       const lit = f === hovered || f === selected;
       f.mesh.material.color.setScalar(lit ? HOVER.exposure : 1);
       f.outline.visible = lit;
-      f.label.material.opacity = lit ? 1 : .8;
+      f.label.material.opacity = 1;
     }
   };
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(TOP + .01)), hit = new THREE.Vector3();
@@ -125,7 +161,7 @@ export function createFolders(room, screenUp) {
     // The folder under a ray, or null.
     at(ray) {
       if (!ray.intersectPlane(plane, hit)) return null;
-      return folders.find(f => { const [u, v] = local(f.sheet, hit.x, hit.z); return Math.abs(u) < HALF.u + .01 && Math.abs(v) < HALF.v + .01; }) || null;
+      return folders.find(f => { const [u, v] = local(placed(f.sheet), hit.x, hit.z); return Math.abs(u) < HALF.u + .01 && Math.abs(v) < HALF.v + .01; }) || null;
     },
     // Returns true when the look changed (the caller redraws).
     hover(folder) { if (folder === hovered) return false; hovered = folder; paint(); return true; },

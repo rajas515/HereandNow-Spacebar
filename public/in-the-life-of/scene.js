@@ -210,7 +210,7 @@ async function init(){
     canvas.dataset.foliageApertures=String(aperture?.geometry.attributes.position.count||0);
     const paperInk=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(paperEdges,3)),new THREE.LineBasicMaterial({color:'#50224c',toneMapped:false}));
     paperInk.name='table-paper-ink';room.add(paperInk);
-    folders=createFolders(room,camera.up);folders?.names.forEach(name=>centralNames.add(name));
+    folders=createFolders(room,camera.up,paperInk);folders?.names.forEach(name=>centralNames.add(name));
     scene.add(room);loaded=true;configure();resize();
     camera.position.copy(base);camera.lookAt(target);camera.updateMatrixWorld(true);
     room.add(buildWindowApertures(camera,gardenMaterial));
