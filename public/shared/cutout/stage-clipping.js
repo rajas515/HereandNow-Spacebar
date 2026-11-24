@@ -63,7 +63,7 @@ export function createStageClipping(renderer,scene,pass,options={}){
   function attachObject(o){
     if(o.userData.sourceOnly)return;
     if(!(o.isMesh||o.isLine)||!o.material)return;
-    const original=o.material,background=!CENTRAL.has(o.name);
+    const original=o.material,background=!CENTRAL.has(o.name)&&!o.userData.central;   // userData.central: a card's own addition to the central set
     attachMaterial(original,background);
     if(o.isMesh&&!original.transparent){
       let normal=pass.normalMaterials.get(original);

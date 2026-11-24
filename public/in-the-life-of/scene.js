@@ -10,6 +10,7 @@ import {createStageClipping} from '../shared/cutout/stage-clipping.js';
 import {addAtmosphere} from '../shared/cutout/atmosphere.js';
 import {mergeGeometries} from '../shared/vendor/BufferGeometryUtils.js';
 import {soundOutput} from '../shared/sound-output.js';
+import {createFolders} from './folders.js';
 
 const assetUrl=path=>new URL(path,import.meta.url).href;
 
@@ -33,7 +34,7 @@ if(saved.compositionRevision!==3){settings.mode='print';settings.riso=.7;setting
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let paused=reduced,visible=true,loaded=false,dirty=true,raf=0,lastDraw=0,time=0,drawCount=0,perfStart=performance.now();
 let quality={fps:40,pixelRatio:1},presence=1;
-let close=false,viewMix=0,transition=null,gardenMaterial;
+let close=false,viewMix=0,transition=null,gardenMaterial,folders=null;
 let wideFov=122;
 const pointer=new THREE.Vector2(),smooth=new THREE.Vector2(),rest=new THREE.Vector2();
 const pan=new THREE.Vector2();
@@ -59,13 +60,18 @@ function setView(value){
   canvas.setAttribute('aria-label',value?'Close overhead view of the worktables. Click or press Escape to return to the room.':'Overhead studio. Click the worktables or press Enter to move closer.');
   mapBridge?.state(value?1:0);dirty=true;wake();
 }
-function tableHit(event){
+function pointerRay(event){
   const r=canvas.getBoundingClientRect();
   const aspect=r.width/r.height;
   const p=new THREE.Vector2(((event.clientX-r.left)/r.width-.5)/Number(settings.width)*aspect,.5-(event.clientY-r.top)/r.height);
   p.multiplyScalar((1+Number(settings.lens)*p.lengthSq())/(1+Number(settings.lens)*.16));
   raycaster.setFromCamera(new THREE.Vector2(p.x/aspect*2,p.y*2),camera);
-  if(!raycaster.ray.intersectPlane(tablePlane,hitPoint))return false;
+  return raycaster.ray;
+}
+// The batch folder under the pointer: only once the table view has fully arrived.
+function folderHit(event){return folders&&close&&!transition&&viewMix===1?folders.at(pointerRay(event)):null;}
+function tableHit(event){
+  if(!pointerRay(event).intersectPlane(tablePlane,hitPoint))return false;
   return hitPoint.x>-.95&&hitPoint.x<1.35&&hitPoint.z>-1.75&&hitPoint.z<2.40;
 }
 // Sound: a page turning (assets/page-turn.mp3) for each click on the worktable or the folders on
@@ -96,7 +102,8 @@ const pageTurn=(()=>{
 })();
 // A click: on the table it turns a page; on the table (or anywhere, when already close) it
 // moves between the room and the overhead table view, as before.
-function tableClick(e){const onTable=tableHit(e);if(onTable)pageTurn();if(close||onTable)setView(!close);}
+function tableClick(e){const folder=folderHit(e);if(folder){pageTurn();folders.select(folder);dirty=true;wake();canvas.dispatchEvent(new CustomEvent('folder',{bubbles:true,detail:{batch:folder.mesh.userData.batch}}));canvas.dataset.folder=String(folder.mesh.userData.batch);return;}
+const onTable=tableHit(e);if(onTable)pageTurn();if(close||onTable)setView(!close);}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(settings));}catch{}}
 function configure(){
   if(!pass)return;
@@ -203,6 +210,7 @@ async function init(){
     canvas.dataset.foliageApertures=String(aperture?.geometry.attributes.position.count||0);
     const paperInk=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(paperEdges,3)),new THREE.LineBasicMaterial({color:'#50224c',toneMapped:false}));
     paperInk.name='table-paper-ink';room.add(paperInk);
+    folders=createFolders(room,camera.up);folders?.names.forEach(name=>centralNames.add(name));
     scene.add(room);loaded=true;configure();resize();
     camera.position.copy(base);camera.lookAt(target);camera.updateMatrixWorld(true);
     room.add(buildWindowApertures(camera,gardenMaterial));
@@ -236,13 +244,13 @@ canvas.addEventListener('pointerdown',e=>{if(e.button===0){pointerDown={x:e.scre
 canvas.addEventListener('pointerup',e=>{if(pointerDown&&!pointerDown.dragged&&Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)<6)tableClick(e);pointerDown=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor='grab';});
 canvas.addEventListener('pointercancel',()=>{pointerDown=null;});
 canvas.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();setView(false);}if(e.code==='Enter'){e.preventDefault();setView(!close);}});
-canvas.addEventListener('pointermove',e=>{if(pointerDown&&!embedded){if(Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)>6)pointerDown.dragged=true;if(pointerDown.dragged){const r=canvas.getBoundingClientRect(),units=2*(camera.position.y-.75)*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/r.height;pan.x=THREE.MathUtils.clamp(pan.x-(e.screenX-pointerDown.lastX)*units,-4,4);pan.y=THREE.MathUtils.clamp(pan.y-(e.screenY-pointerDown.lastY)*units,-4,4);dirty=true;wake();canvas.style.cursor='grabbing';}pointerDown.lastX=e.screenX;pointerDown.lastY=e.screenY;return;}canvas.style.cursor=close?'zoom-out':tableHit(e)?'zoom-in':'grab';if(paused||reduced)return;const r=canvas.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,(e.clientY-r.top)/r.height*2-1);wake();});
+canvas.addEventListener('pointermove',e=>{if(pointerDown&&!embedded){if(Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)>6)pointerDown.dragged=true;if(pointerDown.dragged){const r=canvas.getBoundingClientRect(),units=2*(camera.position.y-.75)*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/r.height;pan.x=THREE.MathUtils.clamp(pan.x-(e.screenX-pointerDown.lastX)*units,-4,4);pan.y=THREE.MathUtils.clamp(pan.y-(e.screenY-pointerDown.lastY)*units,-4,4);dirty=true;wake();canvas.style.cursor='grabbing';}pointerDown.lastX=e.screenX;pointerDown.lastY=e.screenY;return;}{const folder=folderHit(e);if(folders?.hover(folder)){dirty=true;wake();}canvas.style.cursor=folder?'pointer':close?'zoom-out':tableHit(e)?'zoom-in':'grab';}if(paused||reduced)return;const r=canvas.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,(e.clientY-r.top)/r.height*2-1);wake();});
 canvas.addEventListener('dblclick',()=>{pan.set(0,0);dirty=true;wake();});
 // Tell the exhibition when the pointer is over the worktables (where a click moves closer),
 // so its Enter cursor shows only there.
 let overTables=null;const reportTables=over=>{if(over!==overTables){overTables=over;mapBridge?.hover?.(over);}};
 canvas.addEventListener('pointermove',e=>{if(!pointerDown)reportTables(!close&&tableHit(e));},{passive:true});
-canvas.addEventListener('pointerleave',()=>reportTables(false));
+canvas.addEventListener('pointerleave',()=>{reportTables(false);if(folders?.hover(null)){dirty=true;wake();}});
 canvas.addEventListener('keydown',e=>{const moves={ArrowLeft:[-.2,0],ArrowRight:[.2,0],ArrowUp:[0,-.2],ArrowDown:[0,.2]};if(moves[e.code]){e.preventDefault();pan.add(new THREE.Vector2(...moves[e.code]));pan.clampScalar(-4,4);dirty=true;wake();}if(e.code==='Home'){pan.set(0,0);dirty=true;wake();}});
 canvas.addEventListener('pointerleave',()=>{pointer.set(0,0);wake();});
 document.addEventListener('visibilitychange',()=>{lastDraw=0;dirty=true;wake();});
