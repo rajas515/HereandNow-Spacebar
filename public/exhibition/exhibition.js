@@ -26,7 +26,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-25t';
+const ASSET_VERSION = '2026-11-25-merge3';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 
@@ -360,8 +360,20 @@ async function mount(n) {
         adapter.command?.({command: 'motion', paused: reducedMotion});
         wake();
         // hover(over): the pointer is over the card's scene itself (not its backdrop); Enter applies only there.
-        // state('room'): the card is back in its room after Exit (its intro may return).
-        return {state: v => { if (v === 'room' && n.returningUntil) { n.returningUntil = 0; updateSection(nodes[active]); wake(); } }, focus: () => focus(nodes.indexOf(n)), hover: over => { n.reportsHover = true; n.overScene = !!over; syncCursor(); },
+        // state(v): 'room' = back in its room after Exit (its intro may return); 0 / false = the card's own
+        // Exit or Escape closed its view: leave the entered state here too, and bring the intro back
+        // once its view is back (or a moment).
+        return {state: v => {
+          if (v === 'room') { if (n.returningUntil) { n.returningUntil = 0; updateSection(nodes[active]); wake(); } return; }
+          if (!v && n.entered === true) {
+            n.entered = false;
+            if (enteredNode === n) { enteredNode = null; document.body.classList.remove('entered'); }
+            const hold = n.exitHold || 2600;
+            n.returningUntil = performance.now() + hold;
+            setTimeout(() => { updateSection(nodes[active]); wake(); }, hold + 30);
+            updateSection(n); wake();
+          }
+        }, focus: () => focus(nodes.indexOf(n)), hover: over => { n.reportsHover = true; n.overScene = !!over; syncCursor(); },
           // anchor(x, y, h): a point in the card's room (stage px), which its intro follows (chapters.js anchorAt).
           anchor: (x, y) => { n.anchor = [x / Math.max(1, n.frame.offsetWidth), y / Math.max(1, n.el.offsetHeight)]; if (introNode === n) placeIntro(n); }};
       },
