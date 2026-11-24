@@ -8,22 +8,25 @@ canvas{touch-action:none;cursor:grab}
 #mannequin-inset{position:absolute;left:-3%;bottom:-2%;width:29%;height:47%;pointer-events:none;clip-path:polygon(0 0,100% 17%,94% 98%,2% 100%);z-index:3;filter:drop-shadow(3px 5px 3px #090b2544)}
 
 /* Confess to unlock a confession (confessions.js): a speech bubble under the mannequin inset, its
-   tail pointing up into it, styled like the auction's Estate Sale card. Flat: no rounding, no shadow. */
-#confession{position:absolute;z-index:4;pointer-events:none;font-family:Mulish,Arial,sans-serif}
+   tail pointing up into it, styled like the auction's Estate Sale card. Flat: square corners, no shadow.
+   Sizes are in the bubble's own units (its 760-wide viewBox), so it scales as one piece. */
+#confession{position:absolute;z-index:4;pointer-events:none}
 #confession svg{display:block;width:100%;height:auto;overflow:visible}
-#confession .bubble-shape{fill:#ffc4f4;stroke:#842478;stroke-width:10;stroke-linejoin:miter;pointer-events:visiblePainted}
-#confession .bubble-strip{fill:#171944}
-#confession .bubble-top,#confession .bubble-field,#confession .bubble-action{pointer-events:auto;width:100%;height:100%;color:#171944;box-sizing:border-box}
-#confession .bubble-top{position:relative}
-#confession h2{margin:26px 0 0;font:400 42px/1.1 Mulish,Arial,sans-serif;color:#171944}
-#confession .text{margin:8px 48px 0 0;font:400 31px/1.2 Mulish,Arial,sans-serif;color:#171944}
-#confession .text.long{font-size:25px}
-#confession .close{position:absolute;right:0;top:0;width:36px;height:36px;padding:0;border:0;border-radius:0;background:none;color:#842478;font:400 38px/1 Arial,sans-serif;cursor:pointer}
-#confession .close:hover,#confession .close:focus-visible{color:#ff54c2;outline:none}
+#confession .bubble-shape{fill:#ffc4f4;stroke:#842478;stroke-width:9;stroke-linejoin:miter;stroke-miterlimit:3;pointer-events:visiblePainted}
+#confession .bubble-band{fill:#171944}
+#confession[data-view=reveal] .bubble-band{display:none}
+#confession .bubble-copy,#confession .bubble-field,#confession .bubble-action,#confession .bubble-close{pointer-events:auto;width:100%;height:100%;box-sizing:border-box;font-family:Mulish,Arial,sans-serif;color:#171944}
+#confession .bubble-copy{display:flex;align-items:center}
+#confession h2,#confession .bubble-copy p{margin:0;font-weight:400;letter-spacing:0}
+#confession h2{font-size:38px;line-height:1.15}
+#confession .bubble-copy p{font-size:31px;line-height:1.28}
+#confession .bubble-copy p.long{font-size:26px}
 #confession .bubble-field{display:flex;align-items:center}
 #confession form{width:100%;margin:0}
-#confession input{display:block;width:100%;height:38px;border:0;border-bottom:2px solid #ffc1f2;border-radius:0;background:transparent;color:#ffe9fb;font:400 23px Mulish,Arial,sans-serif;padding:0 2px;outline:none}
-#confession input::placeholder{color:#ffc1f2;opacity:.85}
+#confession input{display:block;width:100%;height:36px;margin:0;padding:0 0 4px;border:0;border-bottom:2px solid #ffc1f2;border-radius:0;background:transparent;color:#ffe9fb;font:400 23px Mulish,Arial,sans-serif;outline:none}
+#confession input::placeholder{color:#ffc1f2;opacity:.9}
 #confession input:focus{border-bottom-color:#ff54c2}
-#confession .bubble-action button{display:block;width:100%;height:100%;border:0;border-radius:0;background:#ff54c2;color:#171944;font:400 21px Mulish,Arial,sans-serif;white-space:nowrap;cursor:pointer;padding:0 0 0 6px}
+#confession .bubble-action button{display:block;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:0;background:#ff54c2;color:#171944;font:400 21px Mulish,Arial,sans-serif;white-space:nowrap;cursor:pointer;padding:0 9% 0 4%}   /* label clear of the slanted right edge */
 #confession .bubble-action button:hover,#confession .bubble-action button:focus-visible{background:#f987de;outline:none}
+#confession .bubble-close button{display:block;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:0;background:none;color:#842478;font:300 40px/40px Arial,sans-serif;text-align:center;cursor:pointer}
+#confession .bubble-close button:hover,#confession .bubble-close button:focus-visible{color:#ff54c2;outline:none}

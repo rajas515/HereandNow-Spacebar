@@ -1,7 +1,7 @@
 // Skeletons in the closet: confess to unlock a confession.
 // A speech bubble under the mannequin inset, its tail pointing up into the frame (the reference
-// bubble's shape, mirrored and turned over), styled like the auction's Estate Sale card: flat, no
-// rounded corners, no shadow. A visitor types a confession and one from the closet is revealed in
+// bubble's silhouette, mirrored and turned over), styled like the auction's Estate Sale card: flat,
+// square corners, no shadow. A visitor types a confession and one from the closet is revealed in
 // return; "Submit another one" asks again.
 //
 // No backend for now: what visitors type is not kept anywhere. The closet is SEED, revealed in a
@@ -17,13 +17,36 @@ export const SEED = [
 ];
 const KEY = 'skeletons-confessions-v2';
 
-// viewBox 70 100 750 370. The body spans y ≈ 187–460; the tail rises to y 112.
-const SHAPE = '763,460 278,425 283,447 80,425 111,230 350,220 313,172 353,157 313,112 408,166 433,192 703,187 808,390';
-const STRIP = '118,342 752,350 744,420 128,410';                 // the dark band, along the bottom edge
-const BUTTON = {x: 512, y: 352, width: 226, height: 60,          // the button at the band's right end,
-  clip: 'polygon(0 0,100% 2%,96% 100%,2% 97%)'};                  // its edges following the band's
-const TAIL = {x: (333 - 70) / 750, y: (112 - 100) / 370};          // tail tip, as fractions of the bubble
+// ---- geometry, in one coordinate space (viewBox 0 0 760 370) ----
+// The bubble: a slanted body with a point on each side, a stepped notch at the lower left and the
+// tail rising from its top edge.
+const VIEW = {width: 760, height: 370};
+const SHAPE = [[34, 96], [166, 89], [124, 12], [262, 84], [694, 74], [744, 252], [702, 338], [338, 326], [330, 354], [62, 344], [12, 214]];
+const TAIL = {x: 124 / VIEW.width, y: 12 / VIEW.height};
+// Everything inside lines up on one inner grid: text from x 78, the band's corners below.
+const INNER = {left: 80, right: 640, top: 118};
+// The band sits ~30–40 units inside the outline all round; its right end runs parallel to the bubble's
+// lower-right edge.
+const BAND = [[58, 228], [708, 236], [676, 306], [64, 298]];        // top-left, top-right, bottom-right, bottom-left
+const SPLIT = .64;                                                 // field | button along the band
+const PAD = 9;                                                     // dark margin around the field and button
 
+const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+const along = t => [lerp(BAND[0], BAND[1], t), lerp(BAND[3], BAND[2], t)];   // [top, bottom] at t
+// The button: the band's right end, inset by PAD; its right edge follows the band's slant.
+const [bTop, bBottom] = along(SPLIT), [eTop, eBottom] = along(1);
+const BUTTON = [[bTop[0] + PAD, bTop[1] + PAD], [eTop[0] - PAD, eTop[1] + PAD], [eBottom[0] - PAD, eBottom[1] - PAD], [bBottom[0] + PAD, bBottom[1] - PAD]];
+const [fTop, fBottom] = along(0), [gTop] = along(SPLIT);
+const FIELD = {x: fTop[0] + 22, y: fTop[1] + PAD, width: gTop[0] - fTop[0] - 22 - PAD * 2, height: fBottom[1] - fTop[1] - PAD * 2};
+
+function box(points) {
+  const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+  const x = Math.min(...xs), y = Math.min(...ys), width = Math.max(...xs) - x, height = Math.max(...ys) - y;
+  const clip = `polygon(${points.map(([px, py]) => `${((px - x) / width * 100).toFixed(2)}% ${((py - y) / height * 100).toFixed(2)}%`).join(',')})`;
+  return {x, y, width, height, clip};
+}
+const B = box(BUTTON);
+const pts = list => list.map(p => p.join(',')).join(' ');
 const esc = text => text.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
 export function createConfessions(host, stage, inset) {
@@ -38,24 +61,29 @@ export function createConfessions(host, stage, inset) {
   const bubble = document.createElement('section');
   bubble.id = 'confession';
   bubble.setAttribute('aria-label', 'Confess to unlock a confession');
-  bubble.innerHTML = `<svg viewBox="70 100 750 370" xmlns="http://www.w3.org/2000/svg">
-    <polygon class="bubble-shape" points="${SHAPE}"/>
-    <polygon class="bubble-strip" points="${STRIP}"/>
-    <foreignObject x="135" y="228" width="640" height="110"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-top"></div></foreignObject>
-    <foreignObject x="150" y="352" width="345" height="56"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-field"></div></foreignObject>
-    <foreignObject x="${BUTTON.x}" y="${BUTTON.y}" width="${BUTTON.width}" height="${BUTTON.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-action"></div></foreignObject>
+  bubble.innerHTML = `<svg viewBox="0 0 ${VIEW.width} ${VIEW.height}" xmlns="http://www.w3.org/2000/svg">
+    <polygon class="bubble-shape" points="${pts(SHAPE)}"/>
+    <polygon class="bubble-band" points="${pts(BAND)}"/>
+    <foreignObject class="copy-area" x="${INNER.left}" y="${INNER.top}" width="${INNER.right - INNER.left}" height="${BAND[0][1] - INNER.top - 8}"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-copy"></div></foreignObject>
+    <foreignObject x="${FIELD.x}" y="${FIELD.y}" width="${FIELD.width}" height="${FIELD.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-field"></div></foreignObject>
+    <foreignObject x="${B.x}" y="${B.y}" width="${B.width}" height="${B.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-action"></div></foreignObject>
+    <foreignObject x="${INNER.right + 8}" y="${INNER.top - 10}" width="40" height="40"><div xmlns="http://www.w3.org/1999/xhtml" class="bubble-close"></div></foreignObject>
   </svg>`;
   stage.append(bubble);
-  const top = bubble.querySelector('.bubble-top'), field = bubble.querySelector('.bubble-field'), action = bubble.querySelector('.bubble-action');
+  const copyArea = bubble.querySelector('.copy-area');
+  const copy = bubble.querySelector('.bubble-copy'), field = bubble.querySelector('.bubble-field');
+  const action = bubble.querySelector('.bubble-action'), close = bubble.querySelector('.bubble-close');
   // Typing and clicking here belong to the bubble, not to the room's pan.
   for (const type of ['pointerdown', 'pointermove', 'wheel', 'dblclick']) bubble.addEventListener(type, e => e.stopPropagation());
-  const button = label => `<button type="button" style="clip-path:${BUTTON.clip}">${label}</button>`;
+  const button = label => `<button type="button" style="clip-path:${B.clip}">${label}</button>`;
 
   function ask() {
     bubble.dataset.view = 'ask';
-    top.innerHTML = '<h2>Confess to unlock a confession</h2>';
-    field.innerHTML = '<form id="confess-form"><input name="secret" maxlength="280" autocomplete="off" placeholder="Tell me a secret" aria-label="Your confession" required></form>';
+    copyArea.setAttribute('height', BAND[0][1] - INNER.top - 8);
+    copy.innerHTML = '<h2>Confess to unlock a confession</h2>';
+    field.innerHTML = '<form><input name="secret" maxlength="280" autocomplete="off" placeholder="Tell me a secret" aria-label="Your confession" required></form>';
     action.innerHTML = button('Submit &amp; reveal');
+    close.innerHTML = '';
     const form = field.querySelector('form');
     const submit = event => {
       event.preventDefault();
@@ -70,10 +98,12 @@ export function createConfessions(host, stage, inset) {
     state.at = (state.at + 1) % SEED.length;
     save();
     bubble.dataset.view = 'reveal';
-    top.innerHTML = `<button class="close" type="button" aria-label="Close">×</button><p class="text${text.length > 70 ? ' long' : ''}">${esc(text)}</p>`;
+    copyArea.setAttribute('height', B.y - INNER.top - 8);   // no band in the reveal: the text gets its room
+    copy.innerHTML = `<p class="${text.length > 70 ? 'long' : ''}">${esc(text)}</p>`;
     field.innerHTML = '';
     action.innerHTML = button('Submit another one');
-    top.querySelector('.close').addEventListener('click', ask);
+    close.innerHTML = '<button type="button" aria-label="Close">×</button>';
+    close.querySelector('button').addEventListener('click', ask);
     action.querySelector('button').addEventListener('click', () => { ask(); field.querySelector('input').focus(); });
   }
   ask();
@@ -84,14 +114,13 @@ export function createConfessions(host, stage, inset) {
   function place() {
     const W = stage.clientWidth, H = stage.clientHeight;
     if (!W || !H) return;
-    const width = Math.min(W * .34, H * .5), height = width * 370 / 750;
-    // The inset's centre, without its pan translate (CSS: left -3%, width 29%).
-    const insetCentre = W * (-.03 + .29 / 2);
+    const width = Math.min(W * .34, H * .5), height = width * VIEW.height / VIEW.width;
+    const insetCentre = W * (-.03 + .29 / 2);   // the inset's centre without its pan (CSS: left -3%, width 29%)
     const bottom = H * .02;
     bubble.style.width = width + 'px';
     bubble.style.left = Math.max(W * .01, insetCentre - width * TAIL.x) + 'px';   // whole bubble inside the card
     bubble.style.bottom = bottom + 'px';
-    inset.style.bottom = bottom + height * (1 - TAIL.y) - height * .1 + 'px';   // the tail tucks under its lower edge
+    inset.style.bottom = bottom + height * (1 - TAIL.y) - height * .12 + 'px';   // the tail tucks under its lower edge
   }
   new ResizeObserver(place).observe(stage);
   place();
