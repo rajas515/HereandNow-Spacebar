@@ -2,6 +2,7 @@ import * as THREE from '../shared/vendor/three.module.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
 import {loadTuning, tuningPanel} from '../shared/tuning-panel.js';
+import {soundOutput} from '../shared/sound-output.js';
 
 // Closing Statement / Reflections: the floating mirror composition from
 // "Mirror Composition.blend" (tools/export-reflections.py), seen through its reference camera.
@@ -383,8 +384,126 @@ try {
     let root = hit.object;
     while (root.parent !== gltf.scene) root = root.parent;
     const m = mirrors.find(mirror => mirror.root === root);
-    if (m) press(m, hit.point);
+    if (m) { press(m, hit.point); bladeSound.click(); }
   });
+
+  // ---- sound: a blade scrape (assets/blade-scrape.mp3, the supplied 0.86 s recording) plays only
+  // while the pointer moves over a mirror, and fades out as soon as it leaves the mirror.
+  // The raw recording is bright and hard, so it is softened heavily: pitched down, its top end
+  // rolled off by two gentle low-pass stages, a slow fade-in instead of its sharp attack, and a
+  // low level. Browsers only allow sound after a click or key press on the page.
+  // level is before the site-wide boost in shared/sound-output.js (it doubles everything).
+  // clickLevel/clickFadeIn: the louder, quicker swish when a mirror is clicked.
+  const SCRAPE = {level: .32, rate: .72, cutoff: 1500, fadeIn: .12, fadeOut: .18, clickLevel: .8, clickFadeIn: .03};
+  const hoverRay = new THREE.Raycaster();
+  function mirrorUnder() {
+    hoverRay.setFromCamera(aim, camera);
+    const hit = hoverRay.intersectObject(gltf.scene, true)[0];
+    if (!hit) return null;
+    let root = hit.object;
+    while (root.parent !== gltf.scene) root = root.parent;
+    return mirrors.find(mirror => mirror.root === root) || null;
+  }
+  const bladeSound = (() => {
+    let context, buffer, dropBuffer, loading, voice = null, ripple = null;
+    function load() {
+      context ||= new AudioContext();
+      const get = name => fetch(assetUrl(`./assets/${name}.mp3`))
+        .then(r => { if (!r.ok) throw Error(`${name} unavailable`); return r.arrayBuffer(); })
+        .then(data => context.decodeAudioData(data));
+      loading ||= Promise.all([get('blade-scrape'), get('water-drop')])
+        .then(([blade, drop]) => { buffer = blade; dropBuffer = drop; })
+        .catch(error => { loading = null; console.error('Blade sound:', error); });
+      return context.resume().catch(() => {});
+    }
+    // The water drop under a click: pitched up, then spread out slowly by a soft echo that
+    // repeats every 0.16 s, each repeat darker and quieter, so it rings outward over about a
+    // second, like the ring of light that runs across the clicked glass (PRESS.wipeTime).
+    const RIPPLE = {level: .5, rate: 1.45, echo: .16, feedback: .55, darken: 2600};
+    function drop() {
+      if (!dropBuffer) return;
+      const now = context.currentTime;
+      if (ripple) {   // a new click replaces the last ripple instead of piling on it
+        const g = ripple.out.gain;
+        g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + .05);
+      }
+      const source = context.createBufferSource(), out = context.createGain();
+      const delay = context.createDelay(1), feedback = context.createGain(), dark = context.createBiquadFilter();
+      source.buffer = dropBuffer;
+      source.playbackRate.value = RIPPLE.rate;
+      delay.delayTime.value = RIPPLE.echo;
+      feedback.gain.value = RIPPLE.feedback;
+      dark.type = 'lowpass'; dark.frequency.value = RIPPLE.darken; dark.Q.value = .5;
+      out.gain.value = RIPPLE.level;
+      source.connect(out);
+      source.connect(delay).connect(dark).connect(feedback).connect(delay);   // the echo loop
+      dark.connect(out);
+      out.connect(soundOutput(context));
+      source.start(now);
+      const mine = {out};
+      ripple = mine;
+      setTimeout(() => {   // the echoes have died away: free the nodes
+        for (const n of [source, delay, feedback, dark, out]) n.disconnect();
+        if (ripple === mine) ripple = null;
+      }, 3000);
+    }
+    function fadeOut() {
+      if (!voice) return;
+      const now = context.currentTime, g = voice.gain.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(0, now + SCRAPE.fadeOut);
+      voice.source.stop(now + SCRAPE.fadeOut + .02);
+      voice = null;
+    }
+    canvas.addEventListener('pointerdown', load);
+    canvas.addEventListener('pointerleave', () => { if (context) fadeOut(); });
+    addEventListener('pagehide', () => { if (context) fadeOut(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && context) fadeOut(); });
+    load();   // fetch now so the first pass over a mirror isn't silent
+    // overMirror: the pointer is on a mirror this frame; moving: it moved since the last frame.
+    // A click on a mirror: the same swish, louder and with a quicker attack. It replaces whatever
+    // swish is playing (a quick fade), so clicks never stack.
+    function click() {
+      if (context.state !== 'running') { load().then(click); return; }
+      if (!buffer) return;
+      if (voice) {
+        const now = context.currentTime, g = voice.gain.gain;
+        g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + .04);
+        voice.source.stop(now + .05); voice = null;
+      }
+      play(SCRAPE.clickLevel, SCRAPE.clickFadeIn);
+      drop();
+    }
+    const hover = (overMirror, moving) => {
+      if (!overMirror) { fadeOut(); return; }
+      if (!moving || voice) return;   // one scrape at a time; a still pointer starts nothing new
+      if (context.state !== 'running') load();
+      if (!buffer || context.state !== 'running') return;
+      play(SCRAPE.level, SCRAPE.fadeIn);
+    };
+    hover.click = click;
+    return hover;
+    function play(level, fadeIn) {
+      const now = context.currentTime;
+      const source = context.createBufferSource(), gain = context.createGain();
+      const lowA = context.createBiquadFilter(), lowB = context.createBiquadFilter();
+      for (const f of [lowA, lowB]) { f.type = 'lowpass'; f.frequency.value = SCRAPE.cutoff; f.Q.value = .5; }
+      source.buffer = buffer;
+      source.playbackRate.value = SCRAPE.rate;
+      const length = buffer.duration / SCRAPE.rate;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(level, now + fadeIn);
+      gain.gain.setValueAtTime(level, now + length - SCRAPE.fadeOut);
+      gain.gain.linearRampToValueAtTime(0, now + length);
+      source.connect(lowA).connect(lowB).connect(gain).connect(soundOutput(context));
+      const mine = {source, gain};
+      source.onended = () => { source.disconnect(); lowA.disconnect(); lowB.disconnect(); gain.disconnect(); if (voice === mine) voice = null; };
+      source.start(now);
+      voice = mine;
+    }
+  })();
+  let lastMoveSeen = -Infinity;
 
   // ---- soft orbit: the view turns a few degrees around the composition ----
   // In the exhibition the world's pan drives it (a card off to the right is seen a little from
@@ -446,6 +565,9 @@ try {
       raycaster.setFromCamera(aim, camera);
       cursorRay.copy(raycaster.ray);
     }
+    const moved = pointer.moved !== lastMoveSeen;
+    lastMoveSeen = pointer.moved;
+    bladeSound(pointer.inside && mirrorUnder(), moved);
 
     for (const m of mirrors) reflect(m);
     pass.render(scene, camera, time / 1000);

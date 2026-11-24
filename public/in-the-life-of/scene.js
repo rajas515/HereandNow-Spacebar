@@ -9,6 +9,7 @@ import {installComposition,foliageMaterial,buildWindowApertures,WIDE_OUTLINE} fr
 import {createStageClipping} from '../shared/cutout/stage-clipping.js';
 import {addAtmosphere} from '../shared/cutout/atmosphere.js';
 import {mergeGeometries} from '../shared/vendor/BufferGeometryUtils.js';
+import {soundOutput} from '../shared/sound-output.js';
 
 const assetUrl=path=>new URL(path,import.meta.url).href;
 
@@ -67,6 +68,35 @@ function tableHit(event){
   if(!raycaster.ray.intersectPlane(tablePlane,hitPoint))return false;
   return hitPoint.x>-.95&&hitPoint.x<1.35&&hitPoint.z>-1.75&&hitPoint.z<2.40;
 }
+// Sound: a page turning (assets/page-turn.mp3) for each click on the worktable or the folders on
+// it. One at a time: a new click fades out the previous turn instead of stacking on it.
+// Browsers only allow sound after a click on the page, which this click itself provides.
+const pageTurn=(()=>{
+  const LEVEL=.45;
+  let context,buffer,loading,voice=null;
+  function load(){
+    context||=new AudioContext();
+    loading||=fetch(assetUrl('./assets/page-turn.mp3')).then(r=>{if(!r.ok)throw Error('Page turn sound unavailable');return r.arrayBuffer();})
+      .then(data=>context.decodeAudioData(data)).then(decoded=>{buffer=decoded;}).catch(error=>{loading=null;console.error('Page turn sound:',error);});
+    return context.resume().catch(()=>{});
+  }
+  function play(){
+    if(!buffer||context.state!=='running')return;
+    const now=context.currentTime;
+    if(voice){const g=voice.gain.gain;g.cancelScheduledValues(now);g.setValueAtTime(g.value,now);g.linearRampToValueAtTime(0,now+.04);voice.source.stop(now+.05);voice=null;}
+    const source=context.createBufferSource(),gain=context.createGain();
+    source.buffer=buffer;gain.gain.value=LEVEL;
+    source.connect(gain).connect(soundOutput(context));
+    const mine={source,gain};
+    source.onended=()=>{source.disconnect();gain.disconnect();if(voice===mine)voice=null;};
+    source.start(now);voice=mine;
+  }
+  load();   // fetch now so the first click isn't silent
+  return()=>{if(context.state==='running')play();else load().then(play);};
+})();
+// A click: on the table it turns a page; on the table (or anywhere, when already close) it
+// moves between the room and the overhead table view, as before.
+function tableClick(e){const onTable=tableHit(e);if(onTable)pageTurn();if(close||onTable)setView(!close);}
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(settings));}catch{}}
 function configure(){
   if(!pass)return;
@@ -203,7 +233,7 @@ for(const key of ['riso','sketch','exposure','lens','width','quality'])$('#'+key
 $('#reset').onclick=()=>{settings={...defaults};persist();configure();resize();};
 let pointerDown=null;
 canvas.addEventListener('pointerdown',e=>{if(e.button===0){pointerDown={x:e.screenX,y:e.screenY,lastX:e.screenX,lastY:e.screenY,dragged:false};canvas.setPointerCapture(e.pointerId);}});
-canvas.addEventListener('pointerup',e=>{if(pointerDown&&!pointerDown.dragged&&Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)<6&&(close||tableHit(e)))setView(!close);pointerDown=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor='grab';});
+canvas.addEventListener('pointerup',e=>{if(pointerDown&&!pointerDown.dragged&&Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)<6)tableClick(e);pointerDown=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);canvas.style.cursor='grab';});
 canvas.addEventListener('pointercancel',()=>{pointerDown=null;});
 canvas.addEventListener('keydown',e=>{if(e.code==='Escape'){e.preventDefault();setView(false);}if(e.code==='Enter'){e.preventDefault();setView(!close);}});
 canvas.addEventListener('pointermove',e=>{if(pointerDown&&!embedded){if(Math.hypot(e.screenX-pointerDown.x,e.screenY-pointerDown.y)>6)pointerDown.dragged=true;if(pointerDown.dragged){const r=canvas.getBoundingClientRect(),units=2*(camera.position.y-.75)*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/r.height;pan.x=THREE.MathUtils.clamp(pan.x-(e.screenX-pointerDown.lastX)*units,-4,4);pan.y=THREE.MathUtils.clamp(pan.y-(e.screenY-pointerDown.lastY)*units,-4,4);dirty=true;wake();canvas.style.cursor='grabbing';}pointerDown.lastX=e.screenX;pointerDown.lastY=e.screenY;return;}canvas.style.cursor=close?'zoom-out':tableHit(e)?'zoom-in':'grab';if(paused||reduced)return;const r=canvas.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,(e.clientY-r.top)/r.height*2-1);wake();});
@@ -218,6 +248,6 @@ canvas.addEventListener('pointerleave',()=>{pointer.set(0,0);wake();});
 document.addEventListener('visibilitychange',()=>{lastDraw=0;dirty=true;wake();});
 new ResizeObserver(resize).observe(stage);
 new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;dirty=true;wake();}).observe(stage);
-mapBridge=host.installMapBridge({viewport:m=>{visible=m.visible!==false;presence=m.presence??1;mapViewportState=m;dirty=true;wake();},palette:m=>{mapPrint=m.print||{};configure();dirty=true;wake();},command:m=>{if(m.command==='motion'){paused=!!m.paused;motionButton();}if(m.command==='wide')setView(false);if(m.command==='zoom')setView(!close);dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};mapColor=m.layout?.['in-the-life-of']?.stack?.color||{};configure();if(renderer)resize();},dragEnd:()=>{pointerDown=null;},click:e=>{if(close||tableHit(e))setView(!close);pointerDown=null;}});
+mapBridge=host.installMapBridge({viewport:m=>{visible=m.visible!==false;presence=m.presence??1;mapViewportState=m;dirty=true;wake();},palette:m=>{mapPrint=m.print||{};configure();dirty=true;wake();},command:m=>{if(m.command==='motion'){paused=!!m.paused;motionButton();}if(m.command==='wide')setView(false);if(m.command==='zoom'){pageTurn();setView(!close);}dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};mapColor=m.layout?.['in-the-life-of']?.stack?.color||{};configure();if(renderer)resize();},dragEnd:()=>{pointerDown=null;},click:e=>{tableClick(e);pointerDown=null;}});
 await init();
 }

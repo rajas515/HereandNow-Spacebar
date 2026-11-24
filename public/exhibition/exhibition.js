@@ -10,6 +10,12 @@ import {MAP_PRESET} from '../shared/map-preset.js';
 import {DEFAULT_LAYOUT} from '../shared/studio.js';
 import {sceneBounds, screenRect, localCardOffset} from '../map/registry.js';
 import {createWorldGL, loadCardDocument} from './world-gl.js';
+import {movementSound} from './movement-sound.js?v=soft1';
+import {typewriterSound} from './typewriter-sound.js?v=soft1';
+import {whisperSound} from './whisper-sound.js?v=titlemix3';
+import {lighterSound} from './lighter-sound.js?v=titlemix1';
+import {ambientSound} from './ambient-sound.js?v=tuning1';
+import {whisperLayer} from './will-whispers.js?v=3';
 
 const $ = s => document.querySelector(s);
 const world = $('#world'), viewport = $('#viewport'), minimap = $('#minimap');
@@ -20,7 +26,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-24-merge1';
+const ASSET_VERSION = '2026-11-24-merge1-sound8';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 
@@ -65,13 +71,139 @@ let raf = 0, lastTime = 0;
 // scrolling back up to Act I's resting place plays it in reverse.
 const act1 = nodes[0].card ? nodes[0] : null;
 const story = {progress: 0, onChange: null};
+// ---- sound: scores, whispers and Act I sound cues (see the sound modules beside this file) ----
+const typingSound = typewriterSound(new URL('./keyboard-typing.mp3', import.meta.url));
+// Loudness matching: the recordings range from -30.8 to -16.4 dB RMS, so each gets a fixed trim
+// that brings it to -22 dB RMS (the middle). Measured 2026-11-23 on the parts that play (the
+// main loop's first 15 s, the regional scores whole). Re-measure if a file is replaced.
+const SCORE_TRIM = {main: 2.75, actTwo: .80, skeletons: 1.84, reflections: .52, prayers: .53, eulogies: .44,
+  life: .64,   // In the Life Of: -13.6 dB raw, about -18 dB after its slowing and blur
+  karmic: 1.10, auction: .52};
+// name: the key its live settings are saved under; label: its name in the Sound settings panel;
+// sound: default effect settings (see shared/sound-tuning.js), tuned there and copied back here.
+const ambient = ambientSound(
+  {name: 'main', label: 'Main score', url: new URL('./ambient-music.mp3', import.meta.url), trim: SCORE_TRIM.main},               // -30.8 dB
+  {name: 'act-two', label: 'Act II / Disco score', url: new URL('./act-two-score.mp3', import.meta.url), trim: SCORE_TRIM.actTwo},  // -20.1 dB
+  {name: 'skeletons', label: 'Skeletons score', url: new URL('./skeletons-score.mp3', import.meta.url), trim: SCORE_TRIM.skeletons}, // -27.3 dB
+  // "Empty Fields", for Closing Statement / Reflections
+  {name: 'reflections', label: 'Reflections score (Empty Fields)', url: new URL('./reflections-score.mp3', import.meta.url), trim: SCORE_TRIM.reflections}, // -16.4 dB
+  // "Celestial Dance" (first 150 s), for Prayers for the Next Life
+  {name: 'prayers', label: 'Prayers score (Celestial Dance)', url: new URL('./prayers-score.mp3', import.meta.url), trim: SCORE_TRIM.prayers}, // -16.5 dB
+  // "Cinematic Background Epic" (54 s, looped), for Eulogies
+  {name: 'eulogies', label: 'Eulogies score', url: new URL('./eulogies-score.mp3', import.meta.url), trim: SCORE_TRIM.eulogies}, // -14.9 dB
+  // "Emergence" (first 150 s), for In the Life Of: slowed to 80% and blurred so the piano chords smear
+  {name: 'life', label: 'In the Life Of score (Emergence)', url: new URL('./life-score.mp3', import.meta.url), trim: SCORE_TRIM.life,
+    sound: {rate: .8, tone: 1760, reverb: .67, dry: .44}},
+  // The Auction (Estate Sale): "Luxury" music, layered with the auction ambience below; the main score drops out there.
+  {name: 'auction', label: 'Auction score (Luxury)', url: new URL('./auction-score.mp3', import.meta.url), trim: SCORE_TRIM.auction}, // -16.3 dB
+  // "I Remember Clifford" (first 150 s), for Karmic Debts
+  {name: 'karmic', label: 'Karmic Debts score (I Remember Clifford)', url: new URL('./karmic-score.mp3', import.meta.url), trim: SCORE_TRIM.karmic}, // -22.8 dB
+);
+const scoreNodes = ['disco', 'skeletons-in-the-closet', 'closing-statement', 'prayers-for-the-next-life', 'architecture', 'in-the-life-of', 'the-auction', 'karmic-debts'].map(card => nodes.find(node => node.card === card));
+// Reflections and Prayers also listen to the cursor: their score's "centre of attention" sits
+// partway between the screen centre and the pointer, so moving toward the card brings its music
+// in; with the whole card in view at full zoom, only its score plays.
+const CURSOR_PULL = {'closing-statement': .4, 'prayers-for-the-next-life': .4, architecture: .4, 'in-the-life-of': .4, 'the-auction': .4, 'karmic-debts': .4};   // architecture = Eulogies
+const cursor = {x: .5, y: .5};   // pointer position as a fraction of the screen
+// How far a section's sound reaches, in screen sizes from the centre of attention. The Auction,
+// Skeletons and Eulogies sit close together, so each zone is kept tight: full within FULL,
+// fading to silence by REACH, instead of spreading over a screen and a quarter and muddling.
+const SOUND_ZONE = {FULL: .15, REACH: .7};
+const nearness = distance => Math.max(0, Math.min(1, (SOUND_ZONE.REACH - distance) / (SOUND_ZONE.REACH - SOUND_ZONE.FULL)));
+const willNode = nodes.find(node => node.card === 'will');
+const auctionNode = nodes.find(node => node.card === 'the-auction');
+// The Auction's room tone (a crowd and an auctioneer), layered under its score, fading with the same zone.
+const auctionAmbience = whisperLayer(new URL('./auction-ambience.mp3', import.meta.url), {name: 'auction-ambience', label: 'Auction ambience', level: .9, reverse: false});
+const willVoices = whisperLayer(new URL('./will-voices.mp4', import.meta.url), {name: 'will-whispers', label: 'The Will whispers', level: .5});
+// The reading of the note ("Dear all, We have gathered here today…"), reversed and blurred like
+// The Will but kept low; it starts where the reading begins (about 5.4 s into the recording).
+const noteVoices = whisperLayer(new URL('./note-voices.mp4', import.meta.url), {name: 'note-whispers', label: 'Note reading whispers (Act I)', level: .2, start: 5.4, end: 100.5});
+const TITLE_APPEARS = .8 * 9 / 5.3;
+const TITLE_DISSOLVES = 10.5;
+const TITLE_GONE = 14.5;
+let scoreStarted = false, titleDucking = 0;
+let scoreFade = .35;
+function mixScores(dt) {
+  if (dt) {
+    // Camera easing turns the remaining scroll or drag distance into movement speed.
+    const travel = Math.hypot((target.x - pan.x) / W, (target.y - pan.y) / H, target.z - pan.z);
+    scoreFade = .35 + Math.min(.40, travel * .65);
+  }
+  const zoom = Math.max(0, Math.min(1, (pan.z - ZOOM.min) / (1 - ZOOM.min)));
+  const weights = scoreNodes.map(node => {
+    if (inAct1 || !node) return 0;
+    const rect = screenRect(node, {...pan, x: pan.x + OX}, U, H);
+    const pull = CURSOR_PULL[node.card] || 0;
+    const fx = .5 + (cursor.x - .5) * pull, fy = .5 + (cursor.y - .5) * pull;
+    // Whole card in view at full zoom (its chapter in focus): only its score plays.
+    // (Its chapter is in focus: centred on screen, give or take a little panning.)
+    if (pull && zoom >= .97 && Math.hypot(rect.cx / W - .5, rect.cy / H - .5) < .12) return 1;
+    const distance = Math.hypot(rect.cx / W - fx, rect.cy / H - fy);
+    const near = nearness(distance);
+    // Zoomed out, the score blends with the main one by proximity instead of taking over.
+    return near * near * (3 - 2 * near) * (.5 + .5 * zoom) * (pull ? .9 : 1);
+  });
+  // The Will's reversed whispers sit on top of the music, fading with the same proximity rule.
+  if (willNode && !inAct1 && !arranging) {
+    const rect = screenRect(willNode, {...pan, x: pan.x + OX}, U, H);
+    const fx = .5 + (cursor.x - .5) * .4, fy = .5 + (cursor.y - .5) * .4;
+    const near = nearness(Math.hypot(rect.cx / W - fx, rect.cy / H - fy));
+    const centred = zoom >= .97 && Math.hypot(rect.cx / W - .5, rect.cy / H - .5) < .12;
+    willVoices(centred ? 1 : near * near * (3 - 2 * near) * (.5 + .5 * zoom) * .9);
+  } else willVoices(0);
+  if (auctionNode && !inAct1 && !arranging) {
+    const rect = screenRect(auctionNode, {...pan, x: pan.x + OX}, U, H);
+    const fx = .5 + (cursor.x - .5) * .4, fy = .5 + (cursor.y - .5) * .4;
+    const near = nearness(Math.hypot(rect.cx / W - fx, rect.cy / H - fy));
+    const centred = zoom >= .97 && Math.hypot(rect.cx / W - .5, rect.cy / H - .5) < .12;
+    auctionAmbience(centred ? 1 : near * near * (3 - 2 * near) * (.5 + .5 * zoom) * .9);
+  } else auctionAmbience(0);
+  if (!inAct1 || arranging) noteVoices(0);
+  // A chapter in focus with its own score (weight exactly 1): it plays alone, neighbours silent.
+  const solo = weights.findIndex((w, i) => w === 1 && CURSOR_PULL[scoreNodes[i]?.card]);
+  if (solo >= 0) weights.forEach((_, i) => { if (i !== solo) weights[i] = 0; });
+  // Outside Act I the score always plays (Skip intro leaves before Act I could say it started).
+  ambient(scoreStarted || (!inAct1 && !arranging), inAct1 ? titleDucking : 0, weights, scoreFade);
+  // The whispers belong to the opening question only. Act I stops updating once it is off
+  // screen, so silence them here (every frame) whenever the view has left Act I.
+  if (!inAct1 || arranging) whispers(-1);
+}
+function backgroundSound(seconds, titleSeconds) {
+  scoreStarted = !arranging && (!inAct1 || seconds >= 9.9);
+  const dissolve = Math.max(0, Math.min(1, (titleSeconds - TITLE_DISSOLVES) / (TITLE_GONE - TITLE_DISSOLVES)));
+  titleDucking = titleSeconds >= TITLE_APPEARS - .4 ? 1 - dissolve : 0;
+  // The note appears once the title has gone: its reading whispers fade in over two seconds.
+  const note = Math.max(0, Math.min(1, (titleSeconds - TITLE_GONE) / 2));
+  noteVoices(inAct1 && !arranging ? note * note * (3 - 2 * note) : 0);
+  mixScores();
+}
+const whispers = whisperSound(['./whispers-murmullos.mp3', './whispers-ambiance.mp3'].map(path => new URL(path, import.meta.url)));
+function openingSound(seconds) { whispers(inAct1 && !arranging ? seconds : -1); }
+const titleAudioTiming = {start: TITLE_APPEARS, end: TITLE_GONE, fadeOut: TITLE_GONE - TITLE_DISSOLVES};
+const titlePuff = lighterSound(new URL('./title-smoking.mp3?v=2', import.meta.url), {
+  ...titleAudioTiming, label: 'Title long drag', level: .52, fadeIn: .075,
+});
+const titleBreath = lighterSound(new URL('./title-inhale-exhale.mp3', import.meta.url), {
+  ...titleAudioTiming, label: 'Title inhale and exhale', level: .30, fadeIn: .13,
+});
+function titleSound(seconds) {
+  const time = inAct1 && !arranging ? seconds : -1;
+  titlePuff(time);
+  titleBreath(time);
+}
+// The baked hinges swing from frame 0 through frame 59 at 24 fps.
+const door = lighterSound(new URL('./opening-door.mp3?v=2', import.meta.url), {start:0, end:59 / 24, label:'Door opening'});
+function doorSound(seconds) { door(inAct1 && !arranging ? seconds : -1); }
+function letterSound(characters, revealing) {
+  typingSound(characters, inAct1 && !arranging && revealing);
+}
 // The opening (question, room, title and its hold) plays by itself once Act I has loaded and
 // stops just into the curatorial note; from there scrolling drives everything. It plays once:
 // scrolling back up stops at the start of the note.
 const NOTE_LEAD = 2.68;   // seconds into the note when the opening stops ("Dear all, We have gathered here today to…")
 const OPENING_SPEED = 1.25;
 const AFTER_NOTE_SPEED = 5;   // the letter's reading pause and dissolve go by quickly when scrolled   // the self-playing opening runs a little faster than the scroll timeline
-const act1Scroll = {get progress() { return story.progress; }, set onChange(fn) { story.onChange = fn; }, set: p => setStory(p), timeline: null, visible: true};
+const act1Scroll = {get progress() { return story.progress; }, set onChange(fn) { story.onChange = fn; }, set: p => setStory(p), letterSound, openingSound, titleSound, doorSound, backgroundSound, timeline: null, visible: true};
 let opening = null, noteStart = 0;   // opening: {seconds} while it plays
 let inAct1 = !!act1 && !arranging;
 const act1Pose = () => ({z: 1, x: -act1.x * U, y: -act1.y * H});
@@ -262,6 +394,20 @@ const quality = () => overview
 // In arrange mode a drag that starts on a card moves the card, and cards get no input.
 let press = null, swallowClick = false;
 const nodeAt = target => nodes.find(n => n.el === target?.closest?.('.node'));
+const discoSound = movementSound(new URL('./glitter-chime.mp3?v=2', import.meta.url));
+// The cursor steers the reflections and prayers scores' blend (see mixScores), so re-mix as it
+// moves; a slow tick also re-mixes once the camera has come to rest (the frame loop sleeps then).
+addEventListener('pointermove', e => {
+  cursor.x = e.clientX / Math.max(1, innerWidth); cursor.y = e.clientY / Math.max(1, innerHeight);
+  if (!inAct1) mixScores();
+}, true);
+setInterval(() => { if (!inAct1 && !document.hidden) mixScores(); }, 250);
+addEventListener('pointermove', e => {
+  if (!arranging && !inAct1 && !document.hidden && (e.movementX || e.movementY) && nodeAt(e.target)?.adapter?.hitsDiscoBall?.(e)) discoSound.move();
+  else discoSound.stop();
+}, true);
+viewport.addEventListener('pointerleave', discoSound.stop);
+addEventListener('pointercancel', discoSound.stop, true);
 addEventListener('pointerdown', e => {
   if (e.button || !viewport.contains(e.target)) return;   // shadow-DOM targets retarget to their card frame
   press = {x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY, moved: false, target: e.composedPath()[0], id: e.pointerId,
@@ -626,6 +772,7 @@ function animate(now) {
     const d = target[k] - pan[k];
     if (Math.abs(d) > (k === 'z' ? .0001 : .1)) { pan[k] += d * ease; moving = true; } else pan[k] = target[k];
   }
+  mixScores(dt);
   world.style.transform = `translate3d(${pan.x + OX}px,${pan.y}px,0) scale(${pan.z})`;
   const q = quality(), qKey = JSON.stringify(q), waiting = [];
   let nearest = active, best = Infinity;

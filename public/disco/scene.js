@@ -678,6 +678,12 @@ async function init(){
 }
 
 if(MAP_EMBEDDED)mapBridge=host.installMapBridge({
+ // The exhibition asks this on pointer moves to play the glitter chime over the ball.
+ hitsDiscoBall(event){
+  if(!ballCore||!event.composedPath().includes(canvas))return false;
+  raycaster.setFromCamera(canvasPoint(event),camera);
+  return raycaster.intersectObject(ballCore,false).length>0;
+ },
  dragEnd(){panStart=null;isDragging=false;downPosition=null;canvas.style.cursor='grab';},
  viewport(m){const changed=!!mapViewport.overview!==!!m.overview;mapViewport=m;if(changed)setQuality(quality);panTarget.set(THREE.MathUtils.clamp((m.localPanX??m.offsetX)*.10,-host.innerWidth*.18,host.innerWidth*.18),THREE.MathUtils.clamp((m.localPanY??m.offsetY)*.10,-host.innerHeight*.18,host.innerHeight*.18));},
  layout(m){sceneLayout=structuredClone(m.layout.disco);layoutRevision++;canvas.dataset.appliedLayout=JSON.stringify(sceneLayout);setQuality(m.quality);if(baseMapGrades)gradeFrame(printPass,{});detailCacheKey='';backCacheKey='';},

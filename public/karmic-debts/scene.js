@@ -4,6 +4,33 @@ import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
 import {loadTuning, tuningPanel} from '../shared/tuning-panel.js';
 import {createCut} from './cutout.js';
+import {soundOutput} from '../shared/sound-output.js';
+
+// Sound: a bell (assets/bell.mp3) when the view goes in on the table. One at a time: a new ring
+// fades the last one out. Browsers only allow sound after a click or key press on the page.
+const bell = (() => {
+  const LEVEL = .7;
+  let context, buffer, loading, voice = null;
+  function load() {
+    context ||= new AudioContext();
+    loading ||= fetch(new URL('./assets/bell.mp3', import.meta.url)).then(r => { if (!r.ok) throw Error('Bell unavailable'); return r.arrayBuffer(); })
+      .then(data => context.decodeAudioData(data)).then(decoded => { buffer = decoded; })
+      .catch(error => { loading = null; console.error('Bell:', error); });
+    return context.resume().catch(() => {});
+  }
+  function ring() {
+    if (!buffer || context.state !== 'running') return;
+    const now = context.currentTime;
+    if (voice) { const g = voice.gain.gain; g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + .05); voice.source.stop(now + .06); }
+    const source = context.createBufferSource(), gain = context.createGain();
+    source.buffer = buffer; gain.gain.value = LEVEL;
+    source.connect(gain).connect(soundOutput(context));
+    const mine = {source, gain};
+    source.onended = () => { source.disconnect(); gain.disconnect(); if (voice === mine) voice = null; };
+    source.start(now); voice = mine;
+  }
+  return () => { load().then(() => loading).then(ring); };
+})();
 
 // Karmic Debts: the corner of the studio of studio_room.blend (tools/export-karmic.py), framed
 // as in the sketch: the back plaster wall on the left, the glass partition on the right, the two
@@ -268,6 +295,7 @@ try {
   }
   function setView(next) {
     if (close === next && !zoom) return;
+    if (next && !close) bell();   // going in: the bell rings as the camera starts its push
     close = next;
     zoom = {from: viewMix, to: next ? 1 : 0, start: performance.now(), duration: reduced ? 400 : ZOOM_TIME};
     canvas.dataset.view = next ? 'close' : 'wide';

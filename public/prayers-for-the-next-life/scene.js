@@ -3,6 +3,7 @@ import {mergeGeometries} from '../shared/vendor/BufferGeometryUtils.js';
 import {gltfLoader} from '../shared/gltf.js';
 import {PrintPass} from '../shared/print-pass.js';
 import {loadTuning, tuningPanel} from '../shared/tuning-panel.js';
+import {soundOutput} from '../shared/sound-output.js';
 
 // Prayers for the Next Life: the three lockers of three_lockers_equal.blend
 // (tools/export-prayers.py), seen along the blend's camera. Each locker has eight bottom-hinged
@@ -231,11 +232,93 @@ try {
     if (!pointer.inside) return null;
     raycaster.setFromCamera(pointer.ndc, camera);
     // The cabinets can hide a door's lower edge, so test everything and take the first hit.
-    const hit = raycaster.intersectObject(model, true)[0];
-    return hit?.object.userData.door || null;
+    const hits = raycaster.intersectObject(model, true);
+    // Sticky hover: an opening door swings out from under the pointer and exposes its neighbour,
+    // which used to flip the hover back and forth between two doors (and their sounds). Keep the
+    // current door while the ray still touches it anywhere, and never switch unless the pointer moved.
+    if (hovered && (pointer.moved === pickedAt || hits.some(h => h.object.userData.door === hovered))) return hovered;
+    pickedAt = pointer.moved;
+    return hits[0]?.object.userData.door || null;
   }
+  let pickedAt = -Infinity;
   // Later: a click opens the door fully and a letter slides out.
   // function openDoor(door) { door.target = FULL_OPEN * .8; ... }
+
+  // ---- sound: the supplied locker recording, split in two. locker-open.mp3 (≈18.1–19.3 s:
+  // latch and swing) plays once as a door starts to open under the pointer, and nothing more
+  // while it stays open; locker-close.mp3 (≈19.3–20.2 s) plays as it swings shut when the
+  // pointer leaves. Each door keeps one voice, so a quick open→close cuts the opening short
+  // instead of overlapping it. Browsers only allow sound after a click or key press on the
+  // page, so until then the doors move silently.
+  const doorSound = (() => {
+    let context, loading;
+    const clips = {open: null, close: null};
+    function trimmed(decoded) {   // skip the frame-aligned lead-in so the attack meets the cue
+      const samples = decoded.getChannelData(0);
+      let peak = 0;
+      for (const s of samples) peak = Math.max(peak, Math.abs(s));
+      const first = samples.findIndex(s => Math.abs(s) > Math.max(.003, peak * .05));
+      return {buffer: decoded, offset: Math.max(0, first / decoded.sampleRate - .005)};
+    }
+    function load() {
+      context ||= new AudioContext();
+      loading ||= Promise.all(Object.keys(clips).map(name => fetch(assetUrl(`./assets/locker-${name}.mp3`))
+        .then(r => { if (!r.ok) throw Error(`Locker ${name} sound unavailable`); return r.arrayBuffer(); })
+        .then(data => context.decodeAudioData(data)).then(decoded => { clips[name] = trimmed(decoded); })))
+        .catch(error => { loading = null; console.error('Locker sound:', error); });
+      return context.resume().catch(() => {});
+    }
+    canvas.addEventListener('pointerdown', load);
+    function stopAll() { if (context?.state === 'running') context.suspend().catch(() => {}); }
+    addEventListener('pagehide', stopAll);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopAll(); });
+    load();   // fetch now so the first hover isn't silent
+    // Softened: a low level and a gentle low-pass that takes the metallic edge off.
+    const LEVEL = .3, CUTOFF = 3200;
+    let voice = null, pending = null;
+    function fadeOut(now) {
+      if (!voice) return;
+      const g = voice.gain.gain;
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(0, now + .05);
+      voice.source.stop(now + .06);
+      voice = null;
+    }
+    function play(name) {
+      if (!context) return;
+      if (context.state !== 'running') load();
+      const clip = clips[name];
+      if (!clip || context.state !== 'running') return;
+      const now = context.currentTime;
+      fadeOut(now);   // only ever one locker sound at a time
+      const source = context.createBufferSource(), soft = context.createBiquadFilter(), gain = context.createGain();
+      source.buffer = clip.buffer;
+      soft.type = 'lowpass'; soft.frequency.value = CUTOFF; soft.Q.value = .5;
+      const length = clip.buffer.duration - clip.offset;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(LEVEL, now + .01);
+      gain.gain.setValueAtTime(LEVEL, now + Math.max(.02, length - .06));
+      gain.gain.linearRampToValueAtTime(0, now + length);
+      source.connect(soft).connect(gain).connect(soundOutput(context));
+      const mine = {source, gain};
+      source.onended = () => { source.disconnect(); soft.disconnect(); gain.disconnect(); if (voice === mine) voice = null; };
+      source.start(now, clip.offset);
+      voice = mine;
+    }
+    return {
+      // Called every frame for every door: true while the door is (or is heading) open.
+      // Changes are only noted here; flush() picks one sound for the whole frame.
+      door(door, open) {
+        const state = open ? 'open' : 'closed';
+        door.sound ||= 'closed';
+        if (door.sound === state) return;
+        door.sound = state;
+        if (open || pending !== 'open') pending = open ? 'open' : 'close';   // moving door to door: just the opening
+      },
+      flush() { if (pending) play(pending); pending = null; },
+    };
+  })();
 
   // ---- soft orbit: the view turns a few degrees around the lockers ----
   // In the exhibition the world's pan drives it (a card off to one side is seen a little from
@@ -279,6 +362,7 @@ try {
     let moving = false;
     for (const door of doors) {
       door.target = door === hovered ? THREE.MathUtils.degToRad(tuning.peek) : 0;
+      doorSound.door(door, door === hovered);   // the clip starts on the same frame the swing does
       for (let i = 0; i < 3; i++) {
         const h = dt / 3;
         door.velocity += (-140 * (door.angle - door.target) - 16 * door.velocity) * h;
@@ -288,6 +372,7 @@ try {
       door.hinge.rotation.x = door.rest + door.angle;
       if (Math.abs(door.angle - door.target) > 1e-4 || Math.abs(door.velocity) > 1e-3) moving = true;
     }
+    doorSound.flush();
     return moving;
   }
 

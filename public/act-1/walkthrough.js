@@ -377,17 +377,22 @@ function tick(now){
  const moving=!paused&&Math.abs(distance)>.00001;
  if(moving)storyTime=reduced||Math.abs(distance)<.001?storyTarget:THREE.MathUtils.lerp(storyTime,storyTarget,1-Math.exp(-dt*18));
  target=time=THREE.MathUtils.clamp((storyTime-introDuration)/roomDuration,0,1)*data.duration;
+ host.scroll?.doorSound?.(storyTime >= introDuration && storyTime < introDuration+roomDuration ? time : -1);
  if(cameraMode==='auto'&&!paused)scrollToProgress(storyTime/storyDuration);
  const pointerMoving=parallax.distanceToSquared(pointer)>.000001;
  if(pointerMoving)parallax.lerp(pointer,1-Math.exp(-dt*14));
  if(moving||pointerMoving){applyCamera();dirty=true;}
  pass.uniforms.uIntroSequence.value=storyTime<introDuration?storyTime:-1;updateQuestion(storyTime);
+ host.scroll?.openingSound?.(storyTime<introDuration?storyTime:-1);
  revealProgress.value=THREE.MathUtils.clamp((storyTime-4.8)/6.2,0,1);pass.uniforms.uReveal.value=revealProgress.value;
  const endSequence=storyTime>=introDuration+roomDuration?storyTime-introDuration-roomDuration:-1;
  pass.uniforms.uEndSequence.value=endSequence;
+ host.scroll?.titleSound?.(endSequence);
+ host.scroll?.backgroundSound?.(storyTime, endSequence);
  host.documentElement.dataset.storyProgress=(storyTime/storyDuration).toFixed(4);
  host.documentElement.dataset.endSequence=endSequence<0?'inactive':endSequence<9?'shape-morph':endSequence<10.5?'title':endSequence<14.5?'title-disintegration':'finished';
  if(endSequence>=titleDuration){letter.start(now);letter.update(endSequence-titleDuration);}else letter.stop();
+ host.scroll?.letterSound?.(letter.active ? letter.revealedCharacters : 0, letter.active && endSequence-titleDuration < letter.revealDuration);
  const outlineMoving=animateOutline(dt);
  if(outlineMoving)dirty=true;
  if(dirty&&!letter.active){

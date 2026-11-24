@@ -10,7 +10,84 @@
 // (effects panel, card placement panel and card dragging) and the original source images they
 // needed are left out; the saved card placement is the default (composition.json).
 
+import {soundOutput} from '../shared/sound-output.js';
+
 const assetUrl = path => new URL(path, import.meta.url).href;
+
+// ---- sounds: a keystroke as the bidder's name is typed, a gavel over the gavel icons and on
+// "bid now!". Browsers only allow sound after a click or key press on the page.
+function auctionSounds() {
+  let context, loading;
+  const clips = {};
+  function load() {
+    context ||= new AudioContext();
+    loading ||= Promise.all([['typing', 'assets/keyboard-typing.mp3'], ['gavel', 'assets/gavel.mp3'], ['cut', 'assets/bush-cut.mp3']].map(([name, path]) =>
+      fetch(assetUrl(path)).then(r => { if (!r.ok) throw Error(name + ' sound unavailable'); return r.arrayBuffer(); })
+        .then(data => context.decodeAudioData(data)).then(buffer => { clips[name] = buffer; })))
+      .then(() => {
+        // The typing recording: find its loudest key attack to use as a single keystroke.
+        const b = clips.typing, samples = b.getChannelData(0), w = Math.max(1, Math.floor(b.sampleRate * .06));
+        let peak = 0;
+        for (let i = 0; i < samples.length - w; i += w) {
+          let e = 0;
+          for (let j = i; j < i + w; j++) e += samples[j] * samples[j];
+          if (e > peak) { peak = e; clips.keyAt = Math.max(0, i / b.sampleRate - .012); }
+        }
+      })
+      .catch(error => { loading = null; console.error('Auction sounds:', error); });
+    return context.resume().catch(() => {});
+  }
+  load();
+  let lastKey = -1, gavelVoice = null, cutVoice = null;
+  function voice(buffer, offset, duration, level, fadeIn = .004, rate = 1) {
+    const now = context.currentTime, source = context.createBufferSource(), gain = context.createGain();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+    duration /= rate;   // (offset and duration are in the recording's own seconds)
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(level, now + fadeIn);
+    gain.gain.setValueAtTime(level, now + Math.max(fadeIn, duration - .08));
+    gain.gain.linearRampToValueAtTime(0, now + duration);
+    source.connect(gain).connect(soundOutput(context));
+    source.onended = () => { source.disconnect(); gain.disconnect(); };
+    source.start(now, offset, duration * rate);
+    return {source, gain};
+  }
+  const ready = () => context.state === 'running' && clips.typing && clips.gavel && clips.cut;
+  return {
+    load,
+    // Clicking an object (it lights up to full colour): the bush-cut snip, slowed to 65%
+    // (lower and longer). A new click replaces the last snip instead of stacking.
+    // (Its level and fade-in are the last two settings but one in the call below.)
+    cut() {
+      if (!ready()) { load().then(() => ready() && this.cut()); return; }
+      if (cutVoice) {
+        const g = cutVoice.gain.gain, now = context.currentTime;
+        g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + .03);
+        cutVoice.source.stop(now + .04);
+      }
+      // Kept very soft (about a fifth of the first version) and eased in over 0.15 s, so it
+      // arrives as a hush rather than a snap.
+      cutVoice = voice(clips.cut, 0, clips.cut.duration, .12, .15, .65);
+    },
+    key() {   // one keystroke per typed character, spaced so fast typing doesn't buzz
+      if (!ready()) { load(); return; }
+      if (context.currentTime - lastKey < .04) return;
+      lastKey = context.currentTime;
+      voice(clips.typing, clips.keyAt || 0, .095, .3, .008);
+    },
+    // The gavel recording strikes twice (0.9 s and 1.4 s in): one strike on hover, both on a bid.
+    gavel(bid = false) {
+      if (!ready()) { load().then(() => ready() && this.gavel(bid)); return; }
+      if (gavelVoice) {   // a new strike replaces the last one instead of stacking
+        const g = gavelVoice.gain.gain, now = context.currentTime;
+        g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + .03);
+        gavelVoice.source.stop(now + .04);
+      }
+      gavelVoice = bid ? voice(clips.gavel, .88, 2.1, .55) : voice(clips.gavel, .88, .5, .35);
+    },
+  };
+}
 const PERSPECTIVE = 1050;            // #auction-stage perspective, px
 const BID_KEY = 'auction-local-bids-v1';
 
@@ -47,6 +124,20 @@ try {
       field('bidAmount' + (i + 1)).textContent = amount;
     });
   }
+  const sounds = auctionSounds();
+  host.$('#bidder-name').addEventListener('input', () => sounds.key());
+  // "bid now!": the gavel comes down (on the click, so it sounds even when the name is missing).
+  bidForm.querySelector('button[type="submit"]').addEventListener('click', () => sounds.gavel(true));
+  // The gavel icons beside the current bids: a strike as the pointer arrives on one.
+  const gavels = [...foreground.querySelectorAll('g[transform] > image, g[transform] > use')];
+  let onGavel = null;
+  stage.addEventListener('pointermove', event => {
+    if (!active || foreground.hidden) { onGavel = null; return; }
+    const hit = gavels.find(g => { const r = g.getBoundingClientRect(); return r.width && event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom; }) || null;
+    if (hit && hit !== onGavel) sounds.gavel();
+    onGavel = hit;
+  });
+  stage.addEventListener('pointerleave', () => { onGavel = null; });
   bidForm.addEventListener('submit', event => {
     event.preventDefault();
     if (!active) return;
@@ -185,6 +276,7 @@ try {
   stage.addEventListener('click', event => {
     if (event.target.closest('#focus-item')) return;
     const plane = pick(event);
+    if (plane && active?.plane !== plane) sounds.cut();   // an object lights up and opens
     focus(active?.plane === plane ? null : plane);
   });
   stage.addEventListener('keydown', event => { if (event.key === 'Escape') focus(null); });

@@ -45,6 +45,8 @@ vec3 bg=vec3(.102,.114,.290);vec3 blue=vec3(.50,.56,.96),pink=vec3(.992,.008,.50
  get revealDuration(){return paragraphs.join(' ').split(/\s+/).length*.215+1.5;}
  get duration(){return this.revealDuration+12;}
  update(seconds){if(!this.active)return;const elapsed=Math.max(0,seconds);const g=this.gl;g.useProgram(this.program);g.uniform1f(this.u.elapsed,elapsed);g.uniform1f(this.u.total,this.revealDuration);g.drawArrays(g.TRIANGLES,0,6);
+  // Follow each word's ink reveal, counting its individual letters as ink develops (drives the typing sound).
+  this.revealedCharacters=this.words.reduce((count,word)=>count+Math.floor(word.word.length*Math.max(0,Math.min(1,(elapsed-.65-word.index*.215)/.85))),0);
   const index=Math.max(0,Math.min(this.words.length-1,Math.floor((elapsed-.65)/.215)));const word=this.words[index];
   // Page progress drives both the words and their vertical journey. No nested scroll.
   const travel=Math.max(0,elapsed-1.5)/Math.max(1,this.revealDuration-1.5);
