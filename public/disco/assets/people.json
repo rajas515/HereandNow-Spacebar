@@ -1,0 +1,536 @@
+{
+ "batches": [
+  {
+   "id": "UG10",
+   "year": 2010,
+   "people": [
+    {
+     "name": "Thommen Lukose",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Disney+ Hotstar (Star Sports); a product design company; Microsoft (about seven years, as Art Lead in mixed reality and virtual reality, later contributing to Copilot and Designer)."
+      ],
+      [
+       "Independent practice",
+       "Own practice, X =, based in Kerala."
+      ],
+      [
+       "Areas of interest",
+       "Mixed reality, AI and spatial computing."
+      ]
+     ],
+     "photo": "assets/people/thommen-lukose.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG15",
+   "year": 2015,
+   "people": [
+    {
+     "name": "Komal",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Science Gallery Bengaluru; Centre for Pastoralism."
+      ],
+      [
+       "Independent practice",
+       "Research-based graphic narratives, exhibitions and digital experiences, including a British Council-supported project; Art therapist at Richmond Fellowship Society."
+      ],
+      [
+       "Current role",
+       "Working with a furniture-design firm developing products from reused waste materials."
+      ],
+      [
+       "Areas of interest",
+       "Science engagement, research, public communication and sustainable design, Art advocacy, Public health."
+      ]
+     ],
+     "photo": "assets/people/komal.webp"
+    },
+    {
+     "name": "Akshay",
+     "fields": [
+      [
+       "Independent practice",
+       "Spatial design, storytelling, visualisation and community-focused projects, including collaborations with architects. Independently created a playground in a rural tribal community."
+      ],
+      [
+       "Areas of interest",
+       "Spatial interventions for social change, particularly in rural communities."
+      ]
+     ],
+     "photo": "assets/people/akshay.webp"
+    },
+    {
+     "name": "Jessica Jones",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Design Academy Eindhoven, Netherlands (master's degree)."
+      ],
+      [
+       "Current role",
+       "Production for a visual artist in Johannesburg, South Africa, covering research, production, administration and translating conceptual themes into artworks."
+      ]
+     ],
+     "photo": "assets/people/jessica-jones.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG16",
+   "year": 2016,
+   "people": [
+    {
+     "name": "Abhirami Suresh",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Graduation project supported by Ford Foundation grant; an exhibition in the UAE; a project with the London Design Biennale."
+      ],
+      [
+       "Current role",
+       "Curatorial Projects Manager at Jameel Arts Centre, Dubai."
+      ],
+      [
+       "Areas of interest",
+       "Curatorial practice, youth programming, arts education, community engagement and experimental research and exhibition-making."
+      ]
+     ]
+    },
+    {
+     "name": "Devansh",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Parsons (Communication Design); visual merchandising for fashion and jewellery brands; an automotive pavilion in Milan."
+      ],
+      [
+       "Current role",
+       "Product design in New York."
+      ]
+     ],
+     "photo": "assets/people/devansh.webp"
+    },
+    {
+     "name": "Shruti Chakke",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Worked at Omniverse as a Transdisciplinary Designer; Visiting faculty member for 2nd-year Graphic Design & 3rd-year Fashion Communication students at the Symbiosis Institute of Design."
+      ],
+      [
+       "Independent practice",
+       "Founder of Regenerative Nomads, working with communities, facilitators, and partners in the Changthang region of Ladakh."
+      ]
+     ],
+     "photo": "assets/people/shruti-chakke.webp"
+    },
+    {
+     "name": "Urja Jhaveri",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Museum of Solutions, Mumbai (graduation project on gallery concept and design)."
+      ],
+      [
+       "Independent practice",
+       "Freelance experience design, including festival experiences and brand activations, such as a jewellery brand experience at Jio World Centre, Mumbai."
+      ],
+      [
+       "Current role",
+       "Innovation and Strategy Consultant for an EdTech company."
+      ],
+      [
+       "Areas of interest",
+       "Education, curriculum design and experiences for children."
+      ]
+     ],
+     "photo": "assets/people/urja-jhaveri.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG17",
+   "year": 2017,
+   "people": [
+    {
+     "name": "Mainak",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Graduation Project with Lopez Design (Wayfinding, signage and digital augmentation for Sikanderpur Pahadi, Gurugram)."
+      ],
+      [
+       "Current role",
+       "Product Design Team Lead at a Mumbai-based startup."
+      ],
+      [
+       "Areas of interest",
+       "AR/VR experiences and UI/UX."
+      ]
+     ],
+     "photo": "assets/people/mainak.webp"
+    },
+    {
+     "name": "Dhanraj",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Digital Jalebi (graduation project on a heritage museum); Infosys (Lead UX Designer, 3.5 years)."
+      ],
+      [
+       "Current role",
+       "UX Designer at Fractal Analytics, handling international clients."
+      ],
+      [
+       "Areas of interest",
+       "Experience design beyond screens, behavioural science and psychological design."
+      ]
+     ],
+     "photo": "assets/people/dhanraj.webp"
+    },
+    {
+     "name": "Geethika",
+     "fields": [
+      [
+       "Previous affiliations",
+       "IKEA (Visual merchandising), Ather Energy (Space Design)."
+      ],
+      [
+       "Academic affiliations",
+       "Glasgow School of Art (exchange semester in Interior Design)."
+      ],
+      [
+       "Independent practice",
+       "Co-authored a design research paper with Tanishka Kachru on how lockdown affected design pedagogy; Ford fellow."
+      ],
+      [
+       "Current role",
+       "On a break; learning, researching and performing Mohiniyattam."
+      ],
+      [
+       "Areas of interest",
+       "Gender studies, Design research and writing, Visiting Museums, Cooking."
+      ]
+     ],
+     "photo": "assets/people/geethika.webp"
+    },
+    {
+     "name": "Ritika Jathar",
+     "fields": [
+      [
+       "Independent practice",
+       "Graphic design projects and illustration; Fashion brand Counterfeit by MANAI reimagines Indian textile craft for everyday creative life."
+      ],
+      [
+       "Current role",
+       "UX role at Talentica, Pune."
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "UG18",
+   "year": 2018,
+   "people": [
+    {
+     "name": "Asif Moideen",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Design research for metaverse experiences at Digital Jalebi."
+      ],
+      [
+       "Current role",
+       "VR-based healthcare simulation and product design consulting, based in Bangalore."
+      ]
+     ]
+    },
+    {
+     "name": "Vrushali",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Konstfack, Sweden (interior architecture); a STEM university project in Hyderabad; started a learning-design lab at ISB."
+      ],
+      [
+       "Current role",
+       "Working with a neuroscience research team at an AI company."
+      ],
+      [
+       "Areas of interest",
+       "Public transport systems; right to the city; Human-AI interaction; Neuroscience & Design."
+      ]
+     ],
+     "photo": "assets/people/vrushali.webp"
+    },
+    {
+     "name": "Maulika Jain",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Design Factory India (exhibition designer, narrative design); Central Saint Martins (research-based Master's in Applied Imagination); E Factor Experiences (museum concepts and experiences); NAZ Foundation (graduation project, a virtual 3D museum on queer love)."
+      ],
+      [
+       "Independent practice",
+       "Augmented reality work built with Unity and Unreal Engine; personal research on museum narratives."
+      ],
+      [
+       "Current role",
+       "Researching the responsibility of designers in creating museum narratives, using Delhi's Prime Ministers' Museum as a case study, for presentation at a conference in Prague."
+      ],
+      [
+       "Areas of interest",
+       "Narrative design, museum design and empathy in design."
+      ]
+     ],
+     "photo": "assets/people/maulika-jain.webp"
+    },
+    {
+     "name": "Janani Lakshmi Suresh",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Graduation project: an experience centre for an archaeological site in Tamil Nadu."
+      ],
+      [
+       "Current role",
+       "Creative Director at an agency, working across campaigns, graphic design, marketing and other experience design."
+      ],
+      [
+       "Areas of interest",
+       "History, heritage and narrative design."
+      ]
+     ]
+    },
+    {
+     "name": "Sanju Surendran",
+     "fields": [
+      [
+       "Current role",
+       "Technical Artist at PlaySimple Games, Bengaluru, working across motion design, UI animations, interactions, and sound design for mobile games."
+      ],
+      [
+       "Previous affiliations",
+       "National Handicrafts Museum, New Delhi; WinZO Games, New Delhi, where he worked as a motion designer for nearly three years."
+      ],
+      [
+       "Independent practice",
+       "His graduation project explored the design of a learning centre in Kerala, focusing on creating engaging learning environments through spatial design. He also worked on an experiential cultural centre project in Ladakh."
+      ],
+      [
+       "Areas of interest",
+       "Gaming, interaction design, spatial experiences, motion, and exploring the intersection of art, design, and technology."
+      ]
+     ],
+     "photo": "assets/people/sanju-surendran.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG19",
+   "year": 2019,
+   "people": [
+    {
+     "name": "Shivam Singh",
+     "fields": [
+      [
+       "Current role",
+       "2D visualizer; Spatial graphics for events, now gaming events (Valorant, BGMI, Supercell)."
+      ],
+      [
+       "Areas of interest",
+       "Exhibition graphics and spatial graphics."
+      ]
+     ],
+     "photo": "assets/people/shivam-singh.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG20",
+   "year": 2020,
+   "people": [
+    {
+     "name": "Ritobhash Mukherjee",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Crow (2.5 years); Design Academy Eindhoven, Netherlands (postgraduate study, Critical Inquiry Lab)."
+      ],
+      [
+       "Areas of interest",
+       "Critical research, spatial studies, immersive theatre and writing."
+      ]
+     ],
+     "photo": "assets/people/ritobhash-mukherjee.webp"
+    },
+    {
+     "name": "Arundathi Rajan",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Science Gallery Bengaluru (workshop for the Sci-Fi 60 exhibition programming); Ford Foundation grant for her graduation project, research associate for The Equals Project."
+      ],
+      [
+       "Independent practice",
+       "Data visualisation experiments: public participation during the Indian elections, a data sculpture made at a Bangalore conference, and community workshops using household objects. Presented at RSD and at Vizchitra, India's data visualisation conference."
+      ],
+      [
+       "Current role",
+       "Master's in New Media at Aalto University, Finland."
+      ],
+      [
+       "Areas of interest",
+       "Data visualisation, information design, participation and systems thinking."
+      ]
+     ],
+     "photo": "assets/people/arundathi-rajan.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG21",
+   "year": 2021,
+   "people": [
+    {
+     "name": "Amen Shan",
+     "fields": [
+      [
+       "Independent practice",
+       "Visual artist, exhibition designer and game designer working from a home studio; has designed interactive installations and engagements for numerous conferences, art shows and technology summits."
+      ],
+      [
+       "Current role",
+       "Visual Designer and Art Director working in Film and Video game Pre-Production."
+      ]
+     ],
+     "photo": "assets/people/amen-shan.webp"
+    },
+    {
+     "name": "Aniket Biju",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Theater (retail design for a fashion startup); a design studio; a corporate environment."
+      ],
+      [
+       "Current role",
+       "Back at Theater, after working in other professional environments."
+      ]
+     ],
+     "photo": "assets/people/aniket-biju.webp"
+    },
+    {
+     "name": "Vibhuti Jain",
+     "fields": [
+      [
+       "Independent practice",
+       "Freelance exhibition designer and curator, mainly on contemporary-art and research-led exhibitions; has also worked on projects with Arthshila in Patna."
+      ],
+      [
+       "Current role",
+       "Full-time at an environmental graphic design studio in Bangalore (branding, art installations and graphics for corporate interiors); also an art consultant for corporate spaces."
+      ]
+     ]
+    },
+    {
+     "name": "Mugdha",
+     "fields": [
+      [
+       "",
+       "Pursuing a Master’s in Social Design at Design Academy Eindhoven, Netherlands."
+      ]
+     ],
+     "photo": "assets/people/mugdha.webp"
+    },
+    {
+     "name": "Purvi",
+     "fields": [
+      [
+       "",
+       "Works at PMG Asia Pacific, an event management company operating at an international level, involved in hands-on production, concept development and visualisation."
+      ]
+     ],
+     "photo": "assets/people/purvi.webp"
+    }
+   ]
+  },
+  {
+   "id": "UG22",
+   "year": 2022,
+   "people": [
+    {
+     "name": "Hriday Lodh",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Internship at Guerrilla Art and Design, working across spatial experience design, branding and art concept development."
+      ],
+      [
+       "Areas of interest",
+       "Visualisation and exhibition graphics."
+      ]
+     ]
+    },
+    {
+     "name": "Nikita Lakkaraju",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Museum of Digital Society, Pondicherry (graduation project with the Digital Empowerment Foundation); Living Waters Museum (fellow, Deccan Water chapter); Willem de Kooning Academy, Rotterdam (exchange)."
+      ],
+      [
+       "Independent practice",
+       "Collage and mixed-media art, workshops and activities for school students, educational tools."
+      ],
+      [
+       "Areas of interest",
+       "Museums, digital literacy, public art programmes, regenerative design."
+      ]
+     ]
+    },
+    {
+     "name": "Bharat",
+     "fields": [
+      [
+       "",
+       "Works with Immerse, a studio that creates original immersive experiences as well as commercial and corporate projects."
+      ]
+     ]
+    },
+    {
+     "name": "Shiva Soni",
+     "fields": [
+      [
+       "Previous affiliations",
+       "Engineering at a tribal institute in Udaipur; internship at the Gujarat tribal museum."
+      ],
+      [
+       "Current role",
+       "Service designer at Predict Fit, a biomedical-devices startup."
+      ],
+      [
+       "Areas of interest",
+       "Narrative and experience design."
+      ]
+     ]
+    },
+    {
+     "name": "Anant",
+     "fields": [
+      [
+       "",
+       "Interested in installation and spatial design. Open to working with studios, organisations or corporate setups to gain experience, learn from professionals and build his portfolio."
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}
