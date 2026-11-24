@@ -445,7 +445,7 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===
 window.addEventListener('resize',()=>{renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(host.innerWidth,host.innerHeight);printPass.resize();camera.aspect=host.innerWidth/host.innerHeight;cameraPose();});
 document.addEventListener('visibilitychange',()=>{last=performance.now();});
 let last=performance.now();
-const labelProjected=new THREE.Vector3();const whereNow=createWhereNow(host,$('#experience'));let perfStart=performance.now(),perfFrames=0;
+const labelProjected=new THREE.Vector3();const whereNow=createWhereNow(host,$('#experience'));const roomCorner=new THREE.Vector3(-3.8,4.15,-2);let perfStart=performance.now(),perfFrames=0;
 function animate(now){
   requestAnimationFrame(animate);
   if(document.hidden||(MAP_EMBEDDED&&!mapViewport.visible)){last=now;perfStart=now;perfFrames=0;return;}
@@ -477,8 +477,8 @@ function animate(now){
   }
   const cut=Math.max(0,Math.min(1,(viewMix-.08)/.86));cutRight.constant=THREE.MathUtils.lerp(4.5,-1.7,cut);cutFront.constant=THREE.MathUtils.lerp(4.5,-2.0,cut);renderer.clippingPlanes=viewMix>0?[cutRight,cutFront]:[];
   printPass.setViewMix(viewMix);
-  // The batch list and person card hang off the ball's point on the stage.
-  {const stage=$('#experience');whereNow.pin((labelProjected.x*.5*printPass.cardSize.x+printPass.cardCenter.x)*stage.clientWidth,(1-(labelProjected.y*.5*printPass.cardSize.y+printPass.cardCenter.y))*stage.clientHeight,viewMix);}
+  // The batch list and person card hang off the room cut-out's top left corner on the stage.
+  whereNow.pin(roomCorner,ballPosition,camera,printPass,viewMix);
   setWhiteGlints(printPass,camera);
   const renderStats=printPass.render(scene,camera,elapsed);renderDetailFrame();frame++;perfFrames++;if(canvas.dataset.layoutRevision!==String(layoutRevision)){canvas.dataset.renderedLayout=JSON.stringify(sceneLayout);canvas.dataset.layoutRevision=String(layoutRevision);}
   if(now-perfStart>=1000){canvas.dataset.performance=JSON.stringify({fps:Number((perfFrames*1000/(now-perfStart)).toFixed(1)),drawCalls:renderStats.drawCalls,triangles:renderStats.triangles,pixelRatio:renderer.getPixelRatio(),detailFps:quality.detailFps});perfStart=now;perfFrames=0;}
