@@ -79,3 +79,7 @@ lower-left point, `CORNER_TRACE` in cut-outline.js, traced onto the near cut fac
 frame that point is projected through the current camera, pan and lens, and the pair keep the layout
 of the card's own page relative to it in stage-height units (`PIN` in mannequin-inset.js), so they stay
 on that corner when panning, in the wider exhibition frame and under its world pan.
+Adjust > Position (from the room corner): across, up/down and size for the zoom card (mannequin inset)
+and the confession card, in stage-height units from the corner marker, saved with the card's other
+settings (`green-hour-skeletons-in-the-closet-v1`). "Copy position" copies the six values to make them
+the defaults (`insetX`, `insetY`, `insetSize`, `bubbleX`, `bubbleY`, `bubbleSize` in scene.js).

@@ -35,8 +35,10 @@ export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,cr
  corner??=findCorner();void delta,bounds;
  const W=stage.clientWidth,H=stage.clientHeight,at=screenPoint(mainCamera,settings,corner);
  const cx=W/2+at.x*W+pointer.x*.5,cy=H/2+at.y*H+pointer.y*.5;
- Object.assign(canvas.style,{left:'0',top:'0',bottom:'auto',width:PIN.inset.width*H+'px',height:PIN.inset.height*H+'px'});
- canvas.style.transform=`translate(${cx+PIN.inset.x*H}px,${cy+PIN.inset.y*H}px)`;
+ // Offsets and size from the Adjust panel (Position), falling back to PIN.
+ const ix=settings.insetX??PIN.inset.x,iy=settings.insetY??PIN.inset.y,is=settings.insetSize??1;
+ Object.assign(canvas.style,{left:'0',top:'0',bottom:'auto',width:PIN.inset.width*is*H+'px',height:PIN.inset.height*is*H+'px'});
+ canvas.style.transform=`translate(${cx+ix*H}px,${cy+iy*H}px)`;
  onPin(cx,cy,H);
  // Keep the authored card open at every pan offset.
  const open=1,corners=[[0,6],[68,0],[100,95],[23,100]];

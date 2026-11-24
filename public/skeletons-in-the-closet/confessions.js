@@ -114,12 +114,14 @@ export function createConfessions(host, stage) {
   Object.assign(bubble.style, {left: '0', top: '0'});
   let last = '';
   return {
-    pin(x, y, h) {
-      const key = `${x.toFixed(1)},${y.toFixed(1)},${h}`;
+    // x, y: the room-corner marker on the stage; h: stage height; s: the Adjust panel's Position values.
+    pin(x, y, h, s = {}) {
+      const bx = s.bubbleX ?? PIN.bubble.x, by = s.bubbleY ?? PIN.bubble.y, size = s.bubbleSize ?? 1;
+      const key = `${x.toFixed(1)},${y.toFixed(1)},${h},${bx},${by},${size}`;
       if (key === last) return;
       last = key;
-      bubble.style.width = PIN.bubble.width * h + 'px';
-      bubble.style.transform = `translate(${x + PIN.bubble.x * h}px,${y + PIN.bubble.y * h}px)`;
+      bubble.style.width = PIN.bubble.width * size * h + 'px';
+      bubble.style.transform = `translate(${x + bx * h}px,${y + by * h}px)`;
     },
   };
 }

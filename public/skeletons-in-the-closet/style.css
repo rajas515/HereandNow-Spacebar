@@ -30,3 +30,7 @@ canvas{touch-action:none;cursor:grab}
 #confession .bubble-action button:hover,#confession .bubble-action button:focus-visible{background:#f987de;outline:none}
 #confession .bubble-close button{display:block;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:0;background:none;color:#842478;font:300 40px/40px Arial,sans-serif;text-align:center;cursor:pointer}
 #confession .bubble-close button:hover,#confession .bubble-close button:focus-visible{color:#ff54c2;outline:none}
+
+/* Adjust > Position: the zoom card and confession card, offset from the room-corner marker. */
+#controls .position{display:flex;flex-wrap:wrap;align-items:center;gap:inherit;width:100%;margin:0;padding:12px 0 0;border:0;border-top:1px solid #42446b}
+#controls .position legend{width:100%;padding:0 0 6px;color:#aaa9ca;letter-spacing:.08em;text-transform:uppercase}
