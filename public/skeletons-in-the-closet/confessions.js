@@ -3,7 +3,7 @@ import {PIN} from './mannequin-inset.js';
 // A speech bubble under the mannequin inset, its tail pointing up into the frame (the reference
 // bubble's silhouette, mirrored and turned over), styled like the auction's Estate Sale card: flat,
 // square corners, no shadow. A visitor types a confession and one from the closet is revealed in
-// return; "Submit another one" asks again.
+// return, in quotes; "Another one" asks again.
 //
 // No backend for now: what visitors type is not kept anywhere. The closet is SEED, revealed in a
 // shuffled order that cycles (the place in the cycle is remembered in the browser).
@@ -99,9 +99,9 @@ export function createConfessions(host, stage) {
     save();
     bubble.dataset.view = 'reveal';
     copyArea.setAttribute('height', B.y - INNER.top - 8);   // no band in the reveal: the text gets its room
-    copy.innerHTML = `<p class="${text.length > 70 ? 'long' : ''}">${esc(text)}</p>`;
+    copy.innerHTML = `<p class="${text.length > 70 ? 'long' : ''}">“${esc(text)}”</p>`;   // shown in quotes
     field.innerHTML = '';
-    action.innerHTML = button('Submit another one');
+    action.innerHTML = button('Another one');
     close.innerHTML = '<button type="button" aria-label="Close">×</button>';
     close.querySelector('button').addEventListener('click', ask);
     action.querySelector('button').addEventListener('click', () => { ask(); field.querySelector('input').focus(); });

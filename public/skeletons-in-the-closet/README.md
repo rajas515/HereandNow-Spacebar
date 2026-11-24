@@ -71,7 +71,7 @@ mirrored and turned over), styled like the auction's Estate Sale card: flat, squ
 The inset is raised just enough for the bubble to sit below it inside the card (the exhibition clips a
 card to its frame), and the bubble follows the inset as the room pans. The visitor types a confession
 ("Tell me a secret", Submit & reveal) and one from the closet is revealed, text only, with a plain ×
-and "Submit another one"; the buttons are cut to the dark band's slanted edges. No backend: what
+and "Another one" (confessions shown in quotes); the buttons are cut to the dark band's slanted edges. No backend: what
 visitors type is not kept; the six seeded confessions (`SEED`) cycle in a shuffled order whose place is
 remembered in the browser (`skeletons-confessions-v2`). Sized by the stage height.
 Pinning: the inset and the bubble are pinned to the room's near-left corner (the cut outline's

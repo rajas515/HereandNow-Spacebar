@@ -6,7 +6,7 @@ import {CORNER_TRACE,outlinePoint} from './cut-outline.js';
 // projected through the current camera and lens, and the pair keep the layout measured on the card's
 // own page relative to it, in stage-height units. Panning, the exhibition's wider frame and its world
 // pan all leave them on that corner.
-export const PIN={inset:{x:-.245,y:-.648,width:.412,height:.47},bubble:{x:-.118,y:-.214,width:.483}};
+export const PIN={inset:{x:-.195,y:-.375,width:.412,height:.47},bubble:{x:-.005,y:-.145,width:.483}};
 export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,createRenderer=options=>new THREE.WebGLRenderer(options),onPin=()=>{}){
  const canvas=document.createElement('canvas');canvas.id='mannequin-inset';canvas.setAttribute('aria-label','Detail view of the mannequin through the studio window');stage.append(canvas);
  const renderer=createRenderer({canvas,antialias:true,alpha:true,powerPreference:'low-power'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.localClippingEnabled=true;

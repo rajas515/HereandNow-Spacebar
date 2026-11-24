@@ -26,7 +26,7 @@ if(embedded)host.documentElement.classList.add('map-embedded');
 const KEY='green-hour-skeletons-in-the-closet-v1';
 const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.12,quality:'balanced',floorLight:-.35,roomLight:0,objectLight:-.15,windowLight:-.35,floorWarmth:-.15,roomWarmth:0,objectWarmth:.08,windowWarmth:-.1,
  // Zoom card (mannequin inset) and confession card, placed from the room-corner marker in stage-height units.
- insetX:-.245,insetY:-.648,insetSize:1,bubbleX:-.118,bubbleY:-.214,bubbleSize:1};
+ insetX:-.195,insetY:-.375,insetSize:1,bubbleX:-.005,bubbleY:-.145,bubbleSize:1};
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}');}catch{}
 let settings={...defaults,...saved},paused=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const reduced=paused,pan=new THREE.Vector2(),pointer=new THREE.Vector2(),smooth=new THREE.Vector2(),rest=new THREE.Vector2();
