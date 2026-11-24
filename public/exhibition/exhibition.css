@@ -1,5 +1,5 @@
 /* Same paper and UI colours as the combined map (map/map.css). */
-:root{--paper:#1a1d4a;--ui:#b9bfff;--ui-line:#7b83d866;--pink:#ff9ccf;--muted:#9496bd}
+:root{--paper:#1a1d4a;--hot-pink:#d901b4;--ui:#b9bfff;--ui-line:#7b83d866;--pink:#ff9ccf;--muted:#9496bd}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);overscroll-behavior:none}
 #viewport{position:fixed;inset:0;overflow:hidden;outline:none;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 #viewport.dragging{cursor:grabbing}
@@ -11,55 +11,57 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper
 .placeholder{position:absolute;inset:20%;display:grid;place-content:center;text-align:center;color:var(--muted);font:20px Georgia,serif}
 .node[data-ready] .placeholder{display:none}
 /* Placeholder card: the box a module will fill (full width, landscape height, centred like a card frame). */
-.node.pending .placeholder{inset:3vh 4%;gap:10px;align-content:center;justify-items:center;border:1.5px dashed #7b83d888;border-radius:14px;background:#20245a66;color:var(--muted)}
+.node.pending .placeholder{inset:3vh 4%;gap:10px;align-content:center;justify-items:center;border:1.5px dashed #7b83d888;border-radius:0;background:#20245a66;color:var(--muted)}
 .node.pending .ph-num{font:13px Arial,sans-serif;letter-spacing:.2em;color:var(--pink)}
 .node.pending strong{font:400 clamp(30px,4.6vw,64px)/1.05 Georgia,serif;color:#e5dce9;max-width:80%}
 .node.pending .ph-tone{font:italic 17px Georgia,serif}
 .node.pending em{margin-top:10px;font:11px Arial,sans-serif;font-style:normal;letter-spacing:.16em;text-transform:uppercase;color:#7f80a6}
 .node.act .placeholder{display:none}   /* the page lands straight on Act I's sequence */
 
+/* Loading screen: a thin line with a pink bar filling along it, until the first card is ready. */
+#loader{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--paper);transition:opacity .6s ease}
+#loader.done{opacity:0;pointer-events:none}
+.loader-line{position:relative;width:min(56vw,480px);height:2px;background:#fff}
+.loader-fill{position:absolute;left:0;top:50%;height:20px;width:0;transform:translateY(-50%);background:#c51ac0;transition:width .25s ease-out}
+
 /* Corner HUD, herenowtest-style: site top-left, where you are bottom-left, map bottom-right. */
 .hud{position:fixed;z-index:5;margin:0;font:11px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--ui)}
 .hud a{color:inherit;text-decoration:none}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-/* Top-right: the map toggle, a pill like herenowtest's. */
-.hud-tools{top:20px;right:22px;display:flex;border:1px solid var(--ui-line);border-radius:22px;background:#1a1d4ae0}
-.hud-tools button{font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ui);background:none;border:0;padding:11px 16px;cursor:pointer;display:flex;align-items:center;gap:8px}
-.hud-tools button:hover{color:var(--pink)}
-kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-radius:3px;padding:1px 4px;opacity:.75}
-/* Bottom-right: the minimap box. */
-.hud-mini{right:22px;bottom:22px;width:176px;padding:12px 12px 8px;border:1px solid var(--ui-line);border-radius:12px;background:#1a1d4ae0;text-transform:none}
+/* Controls share ENTER's look: sharp corners, a thin light border, Mulish ExtraBold caps. */
+kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-radius:0;padding:1px 4px;opacity:.75}
+/* Bottom-right: the minimap box, with the map toggle along its foot. */
+.hud-mini{right:22px;bottom:22px;width:176px;padding:12px;border:1px solid #ffffffb3;border-radius:0;background:#1a1d4ae0;text-transform:none}
 #minimap{display:block;width:100%;height:118px;cursor:pointer}
 #minimap rect.room{fill:none;stroke:var(--ui);stroke-opacity:.5;stroke-width:1}
 #minimap rect.room:hover{stroke:var(--pink);stroke-opacity:1}
 #minimap rect.room.active{fill:var(--pink);fill-opacity:.85;stroke:var(--pink);stroke-opacity:1}
 #minimap rect.view{fill:none;stroke:#ffe0ef;stroke-dasharray:2 2;pointer-events:none}
-#mini-foot{display:flex;justify-content:space-between;gap:8px;width:100%;margin-top:8px;padding:7px 0 0;border:0;border-top:1px solid var(--ui-line);background:none;color:var(--ui);cursor:pointer;
-  font:800 10px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;text-align:left}
-#mini-foot:hover{color:var(--pink)}
-#mini-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#mini-count{white-space:nowrap}
-.hud-tools,.hud-mini{transition:opacity .4s}
-.in-act1 .hud-tools,.in-act1 .hud-mini,.map-open .hud-mini,.map-open .hud-tools{opacity:0;pointer-events:none}
+#map-open{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:10px;padding:9px 0 0;border:0;border-top:1px solid #ffffff80;background:none;color:#fff;cursor:pointer;
+  font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+#map-open:hover{color:var(--pink)}
+/* Corner marks, like the description's square on the section intros. */
+.mini-corner{position:absolute;width:12px;height:12px;border:1.5px solid var(--pink);background:var(--paper);pointer-events:none}
+.mini-corner.tl{left:-7px;top:-7px}.mini-corner.tr{right:-7px;top:-7px}.mini-corner.br{right:-7px;bottom:-7px}.mini-corner.bl{left:-7px;bottom:-7px}
+.hud-mini{transition:opacity .4s}
+.in-act1 .hud-mini,.map-open .hud-mini{opacity:0;pointer-events:none}
 
 /* The map view: an index of the sections laid out as they sit in the world. */
-#map-view{position:fixed;inset:0;z-index:20;background:var(--paper);color:#e5dce9;opacity:0;transition:opacity .35s;font-family:Mulish,Arial,sans-serif}
+#map-view{position:fixed;inset:0;z-index:30;background:var(--hot-pink);color:var(--paper);opacity:0;transition:opacity .35s;font-family:Mulish,Arial,sans-serif}
 #map-view.shown{opacity:1}
-.map-head{position:absolute;left:48px;top:34px}
-.map-head p{margin:0 0 10px;font:900 11px Mulish,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--pink)}
-.map-head h2{margin:0;font:900 clamp(40px,6.4vw,92px)/.92 Mulish,Arial,sans-serif;letter-spacing:-.02em;text-transform:uppercase;color:#fff}
-#map-close{position:absolute;top:20px;right:22px;display:flex;align-items:center;gap:8px;padding:11px 16px;border:1px solid var(--ui-line);border-radius:22px;background:none;color:var(--ui);cursor:pointer;
+.map-head{position:absolute;left:40px;top:22px;margin:0}
+.map-head img{display:block;height:clamp(110px,21vh,210px);width:auto;transform-origin:30% 60%;animation:map-wobble 6.5s ease-in-out infinite}
+#map-close{position:absolute;top:20px;right:22px;display:flex;align-items:center;gap:8px;padding:11px 16px;border:1.5px solid var(--paper);border-radius:0;background:none;color:var(--paper);cursor:pointer;
   font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase}
-#map-close:hover{color:var(--pink);border-color:var(--pink)}
-.map-field{position:absolute;left:8vw;right:8vw;top:max(30vh,190px);bottom:5vh}
-.map-lines{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
-.map-lines path{fill:none;stroke:var(--ui);stroke-opacity:.45;stroke-width:1.2;stroke-dasharray:1.5 5;stroke-linecap:round}
-.map-item{position:absolute;left:0;top:0;width:min(15vw,230px);padding:6px 8px 8px;border-top:1px solid var(--ui);color:#fff;text-decoration:none;display:grid;gap:3px;outline:none}
-.map-num{font:900 10px Mulish,Arial,sans-serif;color:var(--pink)}
-.map-item strong{font:900 clamp(15px,1.55vw,24px)/1 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:-.01em}
-.map-go{font:800 9px Mulish,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--ui)}
-.map-item:hover strong,.map-item:focus-visible strong{color:var(--pink)}
-.map-item.current{outline:2px solid var(--pink);outline-offset:4px}
+#map-close:hover{background:var(--paper);color:var(--hot-pink)}
+.map-field{position:absolute;left:8vw;right:8vw;top:max(30vh,230px);bottom:6vh}
+.map-item{position:absolute;left:0;top:0;width:min(17vw,250px);padding:2px 0;color:var(--paper);text-decoration:none;outline:none}
+.map-item strong{display:block;font:400 clamp(17px,1.7vw,27px)/1.08 Mulish,Arial,sans-serif;letter-spacing:0;transform-origin:20% 50%;
+  animation:map-wobble var(--wobble-time,5s) ease-in-out var(--wobble-delay,0s) infinite}
+@keyframes map-wobble{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(1.5px,-2.5px) rotate(-.9deg)}50%{transform:translate(-1px,1.5px) rotate(.6deg)}75%{transform:translate(2px,1px) rotate(-.4deg)}}
+@media (prefers-reduced-motion:reduce){.map-item strong,.map-head img{animation:none}}
+.map-item:hover strong,.map-item:focus-visible strong{color:#fff}
+.map-item.current strong{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px}
 
 /* The hint under the curatorial note once the opening has played. */
 .hud-hint{left:50%;bottom:28px;transform:translateX(-50%);opacity:0;transition:opacity .8s;pointer-events:none}
@@ -69,7 +71,7 @@ kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-r
 @media (prefers-reduced-motion:reduce){.hud-hint span{animation:none}}
 
 /* Dev phase: skip the self-playing opening. */
-.hud-skip{right:22px;bottom:22px;padding:7px 13px;border:1px solid var(--ui-line);border-radius:16px;background:#1a1d4aeb;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s}
+.hud-skip{right:22px;bottom:22px;padding:9px 14px;border:1.5px solid #fff;border-radius:0;background:#1a1d4aeb;color:#fff;font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s}
 .hud-skip:hover{color:var(--pink)}
 .skippable .hud-skip{opacity:1;pointer-events:auto}
 
@@ -86,12 +88,12 @@ kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-r
 /* Anchor marks: the title's corner points and dashed frame, and the description's square, are
    part of the look (they fade with the intro). In ?arrange the points are handles to drag. */
 .intro-handle{position:absolute;width:14px;height:14px;margin:-8px;border:2px solid var(--pink);border-radius:50%;background:#1a1d4acc;pointer-events:none}
-.intro-handle.text{border-radius:2px}
+.intro-handle.text{border-radius:0}
 .arranging .intro-handle{pointer-events:auto;cursor:move}
 #sec-title{outline:3px dashed #ff9ccfaa}
 .arranging #sec-enter{display:none}
 /* Enter: a button where the comp puts it on touch screens; with a mouse it is the cursor itself. */
-#sec-enter{position:absolute;left:calc(50% + 16vh);top:77.3vh;pointer-events:auto;cursor:pointer;padding:.45vh 1.1vh;border:1.5px solid #fff;border-radius:2px;background:transparent;color:#fff;
+#sec-enter{position:absolute;left:calc(50% + 16vh);top:77.3vh;pointer-events:auto;cursor:pointer;padding:.45vh 1.1vh;border:1.5px solid #fff;border-radius:0;background:transparent;color:#fff;
   font:800 max(12px,1.75vh)/1.2 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 #sec-enter:focus-visible{color:var(--pink);border-color:var(--pink);outline:none}
 @media (hover:hover) and (pointer:fine){
@@ -112,10 +114,10 @@ kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-r
 /* Arrange mode (/exhibition/?arrange): every card box is grabbable and outlined. */
 .arranging .frame,.arranging .node .placeholder{pointer-events:auto;cursor:move;outline:1px dashed #ff9ccf88;outline-offset:-1px}
 .arranging .node.selected .frame,.arranging .node.selected .placeholder{outline:2px solid var(--pink)}
-.hud-arrange{top:42px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;padding:6px 8px 6px 14px;border:1px solid var(--ui-line);border-radius:18px;background:#1a1d4aeb;text-transform:none;letter-spacing:0}
-.hud-arrange button{font:inherit;color:inherit;background:none;border:1px solid var(--ui-line);border-radius:12px;padding:5px 10px;cursor:pointer}
+.hud-arrange{top:42px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;padding:6px 8px 6px 14px;border:1px solid var(--ui-line);border-radius:0;background:#1a1d4aeb;text-transform:none;letter-spacing:0}
+.hud-arrange button{font:inherit;color:inherit;background:none;border:1px solid var(--ui-line);border-radius:0;padding:5px 10px;cursor:pointer}
 .hud-arrange button:hover{color:var(--pink)}
 @media (max-width:650px){
-  .hud-tools{right:12px;top:12px}.hud-mini{right:12px;bottom:12px;width:128px}#minimap{height:84px}
-  .map-head{left:20px}.map-field{left:20px;right:20px}.map-item{width:38vw}
+  .hud-mini{right:12px;bottom:12px;width:128px}#minimap{height:84px}
+  .map-head{left:16px}.map-field{left:20px;right:20px}.map-item{width:38vw}
 }

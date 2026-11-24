@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Auction</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The Estate Sale</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#1a1d4a;color:#e5d1ea;font:13px system-ui,sans-serif}header,main{width:min(1300px,96vw,max(510px,calc((100svh - 152px) * 2.06)));margin:auto}header{padding:14px 0}a{color:inherit}h1{font:clamp(32px,5vw,64px) Georgia;margin:0}footer{display:flex;justify-content:space-between;align-items:center;padding:8px 0 24px}
 #stage{position:relative;aspect-ratio:2.06;overflow:hidden;container-type:size;background:#191b43;outline:none}
@@ -28,7 +28,7 @@
 @media(prefers-reduced-motion:reduce){.art{transition:none}}
 /* Embedded (exhibition world or map): the stage fills the frame, page chrome hidden. */
 .map-embedded body{background:transparent;overflow:hidden}.map-embedded header,.map-embedded h1,.map-embedded footer{display:none}.map-embedded main{width:100vw;height:100vh}.map-embedded #stage{aspect-ratio:auto;height:100%;background:transparent}
-</style><script>if(parent!==window)document.documentElement.classList.add('map-embedded');</script></head><body><header><a href="../">Scene studies</a></header><main><h1>the auction</h1><div id="stage" tabindex="0" aria-label="The auction: objects from the studio float up for sale. Hover to light one, click it to see its card and bid."><div id="frame"><div id="auction-stage"><div id="world"></div><div id="front-world"></div></div></div><div id="focus-item" hidden><svg fill="#171944" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" width="694.5" height="474.5" viewBox="28.0 316.5 694.5 474.5">
+</style><script>if(parent!==window)document.documentElement.classList.add('map-embedded');</script></head><body><header><a href="../">Scene studies</a></header><main><h1>the estate sale</h1><div id="stage" tabindex="0" aria-label="The estate sale: objects from the studio float up for sale. Hover to light one, click it to see its card and bid."><div id="frame"><div id="auction-stage"><div id="world"></div><div id="front-world"></div></div></div><div id="focus-item" hidden><svg fill="#171944" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" version="1.1" width="694.5" height="474.5" viewBox="28.0 316.5 694.5 474.5">
 <defs>
 <clipPath id="clip_1">
 <path transform="matrix(1,0,0,-1,0,1050)" d="M0 1050H750V0H0Z"/>
@@ -1462,4 +1462,4 @@ MU8AAAAASUVORK5CYII="/>
 <input id="bidder-name" aria-label="Your name" placeholder="Enter your name" required maxlength="70" />
 <button type="submit">bid now!</button>
 <div id="bid-status" role="status"></div>
-</form></foreignObject></svg></div><p id="status" role="status">Setting out the lots…</p></div><footer><span>Click an object to bid</span><span>The auction</span></footer></main><script type="module">import {mount} from './scene.js';import {pageHost} from '../shared/card-host.js';mount(pageHost());</script></body></html>
+</form></foreignObject></svg></div><p id="status" role="status">Setting out the lots…</p></div><footer><span>Click an object to bid</span><span>The estate sale</span></footer></main><script type="module">import {mount} from './scene.js';import {pageHost} from '../shared/card-host.js';mount(pageHost());</script></body></html>

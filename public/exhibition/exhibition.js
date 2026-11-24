@@ -14,7 +14,7 @@ import {movementSound} from './movement-sound.js?v=soft1';
 import {typewriterSound} from './typewriter-sound.js?v=soft1';
 import {whisperSound} from './whisper-sound.js?v=titlemix3';
 import {lighterSound} from './lighter-sound.js?v=titlemix1';
-import {ambientSound} from './ambient-sound.js?v=tuning1';
+import {ambientSound} from './ambient-sound.js?v=tuning3';
 import {whisperLayer} from './will-whispers.js?v=3';
 
 const $ = s => document.querySelector(s);
@@ -26,7 +26,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-24-merge1-sound8';
+const ASSET_VERSION = '2026-11-25f';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 
@@ -94,8 +94,8 @@ const ambient = ambientSound(
   // "Emergence" (first 150 s), for In the Life Of: slowed to 80% and blurred so the piano chords smear
   {name: 'life', label: 'In the Life Of score (Emergence)', url: new URL('./life-score.mp3', import.meta.url), trim: SCORE_TRIM.life,
     sound: {rate: .8, tone: 1760, reverb: .67, dry: .44}},
-  // The Auction (Estate Sale): "Luxury" music, layered with the auction ambience below; the main score drops out there.
-  {name: 'auction', label: 'Auction score (Luxury)', url: new URL('./auction-score.mp3', import.meta.url), trim: SCORE_TRIM.auction}, // -16.3 dB
+  // The Estate Sale: "Luxury" music, layered with its ambience below; the main score drops out there.
+  {name: 'auction', label: 'Estate Sale score (Luxury)', url: new URL('./auction-score.mp3', import.meta.url), trim: SCORE_TRIM.auction}, // -16.3 dB
   // "I Remember Clifford" (first 150 s), for Karmic Debts
   {name: 'karmic', label: 'Karmic Debts score (I Remember Clifford)', url: new URL('./karmic-score.mp3', import.meta.url), trim: SCORE_TRIM.karmic}, // -22.8 dB
 );
@@ -105,15 +105,15 @@ const scoreNodes = ['disco', 'skeletons-in-the-closet', 'closing-statement', 'pr
 // in; with the whole card in view at full zoom, only its score plays.
 const CURSOR_PULL = {'closing-statement': .4, 'prayers-for-the-next-life': .4, architecture: .4, 'in-the-life-of': .4, 'the-auction': .4, 'karmic-debts': .4};   // architecture = Eulogies
 const cursor = {x: .5, y: .5};   // pointer position as a fraction of the screen
-// How far a section's sound reaches, in screen sizes from the centre of attention. The Auction,
+// How far a section's sound reaches, in screen sizes from the centre of attention. The Estate Sale,
 // Skeletons and Eulogies sit close together, so each zone is kept tight: full within FULL,
 // fading to silence by REACH, instead of spreading over a screen and a quarter and muddling.
 const SOUND_ZONE = {FULL: .15, REACH: .7};
 const nearness = distance => Math.max(0, Math.min(1, (SOUND_ZONE.REACH - distance) / (SOUND_ZONE.REACH - SOUND_ZONE.FULL)));
 const willNode = nodes.find(node => node.card === 'will');
 const auctionNode = nodes.find(node => node.card === 'the-auction');
-// The Auction's room tone (a crowd and an auctioneer), layered under its score, fading with the same zone.
-const auctionAmbience = whisperLayer(new URL('./auction-ambience.mp3', import.meta.url), {name: 'auction-ambience', label: 'Auction ambience', level: .9, reverse: false});
+// The Estate Sale's room tone (a crowd and an auctioneer), layered under its score, fading with the same zone.
+const auctionAmbience = whisperLayer(new URL('./auction-ambience.mp3', import.meta.url), {name: 'auction-ambience', label: 'Estate Sale ambience', level: .9, reverse: false});
 const willVoices = whisperLayer(new URL('./will-voices.mp4', import.meta.url), {name: 'will-whispers', label: 'The Will whispers', level: .5});
 // The reading of the note ("Dear all, We have gathered here today…"), reversed and blurred like
 // The Will but kept low; it starts where the reading begins (about 5.4 s into the recording).
@@ -367,7 +367,7 @@ async function mount(n) {
     // Warm-up: draw once while off screen, so its shaders compile during loading (behind the
     // Act I opening) rather than freezing the first pan that reaches it.
     n.warmUntil = performance.now() + 900; wake();
-    if (n === act1) playOpening();
+    if (n === act1) loaded.then(playOpening);   // the opening starts as the loading screen clears
   } catch (error) {
     console.error(`Card ${n.card} could not load`, error);
     n.el.querySelector('.placeholder').textContent = `${n.label} — could not load. Reload the page to try again.`;
@@ -528,7 +528,6 @@ if (arranging) {
   updateArrange();
 }
 $('#map-open').onclick = () => openMap();
-$('#mini-foot').onclick = () => openMap();
 addEventListener('resize', () => {
   W = innerWidth; H = innerHeight; U = Math.round(H * ASPECT); OX = (W - U) / 2;
   world.style.setProperty('--card-w', U + 'px'); drawMinimap(); if (mapOpen) layoutMap();
@@ -542,15 +541,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ---- HUD: where you are, a minimap of the rooms, and the map view (herenowtest-style) ----
-const visited = new Set();
 const shortTitle = n => n.isAct ? n.act.split('·').pop().trim() : n.title;
 function updateHud() {
   document.body.classList.toggle('in-act1', inAct1);
   const n = nodes[active];
-  visited.add(active);
   $('#now-title').textContent = `${n.act}: ${n.isAct ? n.title : `${n.n} ${n.title}`}`;   // read out by screen readers only
-  $('#mini-title').textContent = shortTitle(n);
-  $('#mini-count').textContent = `${active + 1} / ${nodes.length}`;
   minimap.querySelectorAll('.room').forEach((r, i) => r.classList.toggle('active', i === active));
 }
 // Minimap: every card drawn to its real shape (ASPECT wide, one high) and place; the dashed
@@ -575,14 +570,16 @@ minimap.addEventListener('click', e => {
   overview = false; target = {z: 1, x: -(u.x / ASPECT - .5) * U, y: -(u.y - .5) * H}; bound(); updateHud(); wake();
 });
 
-// Map view: an index of every section, placed as they sit in the world, joined in order by
-// dotted lines; the current one is boxed. Pick one to go there.
-const mapView = $('#map-view'), mapField = mapView.querySelector('.map-field'), mapLines = mapView.querySelector('.map-lines');
+// Map view: an index of every section, placed as they sit in the world; the current one is
+// underlined. Pick one to go there.
+const mapView = $('#map-view'), mapField = mapView.querySelector('.map-field');
 let mapOpen = false;
 const mapItems = nodes.map((n, i) => {
   const a = document.createElement('a');
   a.className = 'map-item'; a.href = '#' + n.id;
-  a.innerHTML = `<span class="map-num">${n.n || '01'}</span><strong>${shortTitle(n)}</strong><span class="map-go"></span>`;
+  a.innerHTML = `<strong>${shortTitle(n)}</strong>`;
+  // Each name wobbles to its own rhythm, like the boil in the riso prints.
+  a.style.setProperty('--wobble-delay', `${-(i * 1.37) % 5}s`); a.style.setProperty('--wobble-time', `${4.2 + (i * .61) % 2.2}s`);
   a.onclick = e => { e.preventDefault(); closeMap(); focus(i); };
   mapField.append(a);
   return a;
@@ -590,18 +587,15 @@ const mapItems = nodes.map((n, i) => {
 function layoutMap() {
   const fw = mapField.clientWidth, fh = mapField.clientHeight, centres = nodes.map(n => ({x: n.x * ASPECT + ASPECT / 2, y: n.y + .5}));
   const x0 = Math.min(...centres.map(c => c.x)), x1 = Math.max(...centres.map(c => c.x)), y0 = Math.min(...centres.map(c => c.y)), y1 = Math.max(...centres.map(c => c.y));
-  const itemW = mapItems[0].offsetWidth, itemH = 96;
-  const pts = centres.map(c => ({x: (c.x - x0) / (x1 - x0 || 1) * (fw - itemW), y: (c.y - y0) / (y1 - y0 || 1) * (fh - itemH)}));
+  const itemW = mapItems[0].offsetWidth, itemH = 56;
+  const pts = centres.map((c, i) => {
+    const [ox, oy] = nodes[i].mapOffset || [0, 0];   // a map-only nudge from chapters.js
+    return {x: ((c.x - x0) / (x1 - x0 || 1) + ox) * (fw - itemW), y: ((c.y - y0) / (y1 - y0 || 1) + oy) * (fh - itemH)};
+  });
   mapItems.forEach((a, i) => {
     a.style.transform = `translate(${pts[i].x}px,${pts[i].y}px)`;
     a.classList.toggle('current', i === active);
-    a.querySelector('.map-go').textContent = (visited.has(i) ? 'Visited' : 'Enter') + ' ↗';
   });
-  mapLines.setAttribute('viewBox', `0 0 ${fw} ${fh}`);
-  mapLines.innerHTML = pts.slice(1).map((b, k) => {
-    const a = pts[k], ax = a.x + itemW * .5, ay = a.y + 4, bx = b.x + itemW * .5, by = b.y + 4, my = (ay + by) / 2;
-    return `<path d="M${ax} ${ay}C${ax} ${my} ${bx} ${my} ${bx} ${by}"/>`;
-  }).join('');
 }
 function openMap() {
   if (mapOpen) return closeMap();
@@ -752,6 +746,27 @@ function updateGuides() {
     el.style.setProperty('--near', Math.max(.35, 1 - far / GUIDE_RANGE).toFixed(2));
   });
 }
+
+// ---- loading screen: fills while the first card (Act I, or the chapter linked to) loads ----
+// Downloads give no single progress figure, so the bar creeps towards 90% while waiting and
+// completes when the card is ready; then the screen fades and `loaded` resolves.
+const loader = $('#loader'), loaderFill = loader?.querySelector('.loader-fill');
+let loaderShown = 0;
+const loaded = new Promise(resolve => {
+  if (!loader) return resolve();
+  let first = null; const started = performance.now();
+  const step = now => {
+    first ||= nodes[active];   // decided on the first frame, after the page has jumped to a linked chapter
+    const ready = first.el.dataset.ready !== undefined || !first.card || now - started > MOUNT_WATCHDOG;
+    const aim = ready ? 1 : .9 * (1 - Math.exp(-(now - started) / 4000));
+    loaderShown = ready ? 1 : Math.max(loaderShown, aim);
+    loaderFill.style.width = (loaderShown * 100).toFixed(1) + '%';
+    loader.setAttribute('aria-valuenow', Math.round(loaderShown * 100));
+    if (!ready) return requestAnimationFrame(step);
+    setTimeout(() => { loader.classList.add('done'); setTimeout(resolve, 250); setTimeout(() => loader.remove(), 700); }, 300);
+  };
+  requestAnimationFrame(step);
+});
 
 // How present a card is (cards fold their insets away as this drops): the visible share of
 // the card, or of the screen when the card is larger than it, so a centred card is fully

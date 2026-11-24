@@ -7,10 +7,11 @@
 <title>Here and Now — Exhibition</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@500;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;800;900&display=swap">
 <link rel="stylesheet" href="./exhibition.css">
 </head>
 <body class="in-act1 skippable">
+<div id="loader" role="progressbar" aria-label="Loading the exhibition" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="loader-line"><span class="loader-fill"></span></span></div>
 <main id="viewport" tabindex="0" aria-label="Exhibition. Scroll to move through the chapters, drag to look around, M for the map."><canvas id="gl" aria-hidden="true"></canvas><div id="world"></div></main>
 
 <div id="guides" aria-label="Nearby chapters"></div>
@@ -24,18 +25,16 @@
 <p class="hud hud-hint" aria-hidden="true">Scroll down <span>↓</span></p>
 <p class="sr-only" aria-live="polite" id="now-title"></p>
 
-<nav class="hud hud-tools" aria-label="Exhibition navigation">
-  <button id="map-open" type="button" aria-haspopup="dialog">The map <kbd>M</kbd></button>
-</nav>
-<div class="hud hud-mini">
+<nav class="hud hud-mini" aria-label="Exhibition navigation">
   <svg id="minimap" role="img" aria-label="Minimap: click a room to go there"></svg>
-  <button id="mini-foot" type="button" aria-label="Open the map"><span id="mini-title"></span><span id="mini-count"></span></button>
-</div>
+  <button id="map-open" type="button" aria-haspopup="dialog"><span>The map</span><kbd>M</kbd></button>
+  <i class="mini-corner tl"></i><i class="mini-corner tr"></i><i class="mini-corner br"></i><i class="mini-corner bl"></i>
+</nav>
 
 <div id="map-view" role="dialog" aria-modal="true" aria-label="Map of the exhibition" hidden>
-  <header class="map-head"><p>An exhibition in three acts</p><h2>Take it to the grave.</h2></header>
+  <h2 class="map-head"><img src="./map-title.webp" alt="Take it to the grave" width="595" height="392"></h2>
   <button id="map-close" type="button">Close <kbd>M</kbd></button>
-  <div class="map-field"><svg class="map-lines" aria-hidden="true"></svg></div>
+  <div class="map-field"></div>
 </div>
 
 <script type="module" src="./exhibition.js"></script>

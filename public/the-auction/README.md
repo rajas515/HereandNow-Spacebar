@@ -1,4 +1,4 @@
-# 07 — The Auction
+# 07 — The Estate Sale
 
 Source: the "New Auction 3D Composition - Laptop Transfer" (Nov 2026), from an earlier fork:
 `Auction Composition.html`, its `Composition PNGs` and `auction-scene-with-card.json`.

@@ -134,6 +134,7 @@ export function effectChain(context, output, values) {
 let panelQueued = false;
 function queuePanel() {
   if (panelQueued || typeof document === 'undefined' || window.top !== window) return;
+  if (!new URLSearchParams(location.search).has('sound')) return;   // a tuning tool: open the page with ?sound to use it
   panelQueued = true;
   const go = () => setTimeout(buildPanel, 0);
   if (document.body) go(); else addEventListener('DOMContentLoaded', go, {once: true});
@@ -147,12 +148,12 @@ function buildPanel() {
   toggle.type = 'button';
   toggle.textContent = 'Sound settings';
   toggle.setAttribute('aria-expanded', 'false');
-  const top = document.getElementById('viewport') ? 128 : null;
-  toggle.style.cssText = `position:fixed;${top ? `right:22px;top:${top}px` : 'left:22px;bottom:128px'};z-index:21;background:${ink};color:${pink};border:1px solid ${line};border-radius:16px;padding:7px 13px;cursor:pointer;font:11px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase`;
+  const top = document.getElementById('viewport') ? 66 : null;
+  toggle.style.cssText = `position:fixed;${top ? `right:22px;top:${top}px` : 'left:22px;bottom:128px'};z-index:21;background:${ink};color:#fff;border:1.5px solid #fff;border-radius:0;padding:9px 14px;cursor:pointer;font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;`;
   const panel = document.createElement('section');
   panel.setAttribute('aria-label', 'Sound settings');
   panel.hidden = true;
-  panel.style.cssText = `position:fixed;${top ? `right:22px;top:${top + 40}px` : 'left:22px;bottom:170px'};z-index:21;width:min(340px,calc(100vw - 44px));max-height:calc(100vh - ${top ? top + 62 : 200}px);overflow:auto;padding:12px 14px;background:${ink};border:1px solid ${line};border-radius:14px;color:#e5dce9;font:12px Arial,sans-serif`;
+  panel.style.cssText = `position:fixed;${top ? `right:22px;top:${top + 40}px` : 'left:22px;bottom:170px'};z-index:21;width:min(340px,calc(100vw - 44px));max-height:calc(100vh - ${top ? top + 62 : 200}px);overflow:auto;padding:12px 14px;background:${ink};border:1px solid ${line};border-radius:0;color:#e5dce9;font:12px Arial,sans-serif`;
   for (const type of ['pointerdown', 'wheel', 'keydown', 'click']) { panel.addEventListener(type, e => e.stopPropagation()); toggle.addEventListener(type, e => e.stopPropagation()); }
   toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) render(); });
 
@@ -173,7 +174,7 @@ function buildPanel() {
     // Now playing: the tracks you can hear for what is on screen, loudest first, each with a
     // level bar and a button that opens its sliders below. Refreshed while the panel is open.
     const now = document.createElement('div');
-    now.style.cssText = `margin:0 0 8px;padding:8px 10px;border:1px solid ${line}88;border-radius:10px`;
+    now.style.cssText = `margin:0 0 8px;padding:8px 10px;border:1px solid ${line}88;border-radius:0`;
     const nowTitle = document.createElement('div');
     nowTitle.textContent = 'Now playing';
     nowTitle.style.cssText = `color:${pink};font:11px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px`;
@@ -186,7 +187,7 @@ function buildPanel() {
       box.style.cssText = `border-top:1px solid ${line}55;padding:6px 0`;
       const sum = document.createElement('summary');
       const dot = document.createElement('span');
-      dot.style.cssText = `display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 7px 1px 2px;background:${pink};opacity:.15`;
+      dot.style.cssText = `display:inline-block;width:7px;height:7px;border-radius:0;margin:0 7px 1px 2px;background:${pink};opacity:.15`;
       sum.append(dot, t.label);
       sum.style.cssText = 'cursor:pointer;padding:4px 0;color:#ffe0ef';
       box.append(sum);
@@ -223,7 +224,7 @@ function buildPanel() {
         row.style.cssText = 'display:grid;grid-template-columns:1fr 70px auto;gap:8px;align-items:center;margin:3px 0';
         const label = document.createElement('span'); label.textContent = t.label;
         const bar = document.createElement('span');
-        bar.style.cssText = `height:6px;border-radius:3px;background:linear-gradient(90deg,${pink} ${Math.round(Math.min(1, t.level) * 100)}%,${line}44 0)`;
+        bar.style.cssText = `height:6px;border-radius:0;background:linear-gradient(90deg,${pink} ${Math.round(Math.min(1, t.level) * 100)}%,${line}44 0)`;
         const adjust = button('Adjust', () => { const b = boxes.get(name).box; b.open = true; b.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
         row.append(label, bar, adjust);
         nowList.append(row);
@@ -237,7 +238,7 @@ function buildPanel() {
   function button(text, onClick) {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = text;
-    b.style.cssText = `background:none;color:${pink};border:1px solid ${line};border-radius:12px;padding:4px 9px;cursor:pointer;font:11px Arial,sans-serif`;
+    b.style.cssText = `background:none;color:${pink};border:1px solid ${line};border-radius:0;padding:4px 9px;cursor:pointer;font:11px Arial,sans-serif`;
     b.addEventListener('click', onClick);
     return b;
   }

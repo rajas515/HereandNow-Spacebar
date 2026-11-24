@@ -30,7 +30,7 @@ function reversed(context, decoded, start, end, reverse = true) {
 
 // level: loudness at full presence (before the panel's volume); start/end: the part of the
 // recording to use, in seconds.
-// reverse: false plays the recording forwards (used for the auction ambience).
+// reverse: false plays the recording forwards (used for the Estate Sale ambience).
 export function whisperLayer(url, {name, label, level = .5, start = 0, end = Infinity, reverse = true, sound = {}} = {}) {
   const context = new AudioContext();
   const master = context.createGain();

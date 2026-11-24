@@ -44,15 +44,16 @@ let render = null;
 function addControl() {
   if (render || typeof document === 'undefined' || !document.body) return;
   if (window.top !== window) return;   // a card framed inside /map/: no control per frame (it still follows the saved volume)
+  if (!new URLSearchParams(location.search).has('sound')) return;   // shown only with ?sound (tuning); the saved volume still applies
   const box = document.createElement('div');
   box.setAttribute('role', 'group');
   box.setAttribute('aria-label', 'Volume');
-  // Exhibition: top right, under its header. Standalone card pages keep their right side for the
+  // Exhibition: top right. Standalone card pages keep their right side for the
   // Tune panel, so there it sits bottom left, above the page caption.
-  const where = document.getElementById('viewport') ? 'right:22px;top:84px' : 'left:22px;bottom:84px';
+  const where = document.getElementById('viewport') ? 'right:22px;top:20px' : 'left:22px;bottom:84px';
   box.style.cssText = 'position:fixed;' + where + ';z-index:21;display:flex;align-items:center;gap:8px;'
-    + 'padding:6px 12px 6px 8px;background:#1a1d4aeb;border:1px solid #7b83d8;border-radius:16px;color:#ff9ccf;'
-    + 'font:11px Arial,sans-serif;letter-spacing:.04em;text-transform:uppercase';
+    + 'padding:6px 12px 6px 8px;background:#1a1d4aeb;border:1.5px solid #fff;border-radius:0;color:#fff;'
+    + 'font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase';
   const button = document.createElement('button');
   button.type = 'button';
   button.style.cssText = 'display:grid;place-items:center;width:24px;height:24px;padding:0;background:none;border:0;color:inherit;cursor:pointer';
@@ -60,7 +61,15 @@ function addControl() {
   slider.type = 'range';
   slider.min = 0; slider.max = MAX_VOLUME; slider.step = .1;
   slider.setAttribute('aria-label', 'Volume');
-  slider.style.cssText = 'width:96px;accent-color:#ff9ccf;cursor:pointer';
+  slider.className = 'site-volume';
+  slider.style.cssText = 'width:96px;cursor:pointer';
+  // Sharp, like the rest of the exhibition's controls: a thin white track and a square pink knob.
+  if (!document.getElementById('site-volume-css')) document.head.append(Object.assign(document.createElement('style'), {id: 'site-volume-css', textContent:
+    '.site-volume{-webkit-appearance:none;appearance:none;height:14px;background:transparent;margin:0}'
+    + '.site-volume::-webkit-slider-runnable-track{height:2px;background:#fff;border:0}'
+    + '.site-volume::-moz-range-track{height:2px;background:#fff;border:0}'
+    + '.site-volume::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:14px;margin-top:-6px;background:#ff9ccf;border:0;border-radius:0}'
+    + '.site-volume::-moz-range-thumb{width:10px;height:14px;background:#ff9ccf;border:0;border-radius:0}'}));
   const label = document.createElement('span');
   label.style.cssText = 'min-width:44px;text-align:right';
   box.append(button, slider, label);

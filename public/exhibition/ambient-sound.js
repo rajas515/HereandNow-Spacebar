@@ -26,7 +26,7 @@ export function ambientSound(mainScore, ...regionalScores) {
   let buffer, voice, active = false, ducking = 0;
   const enable = document.createElement('button');
   enable.textContent = 'Enable sound';
-  enable.style.cssText = 'position:fixed;right:22px;top:44px;z-index:20;background:#1a1d4a;color:#ff9ccf;border:1px solid #7b83d8;border-radius:16px;padding:8px 14px;cursor:pointer';
+  enable.style.cssText = 'position:fixed;right:22px;top:66px;z-index:20;background:#1a1d4a;color:#fff;border:1.5px solid #fff;border-radius:0;padding:9px 14px;cursor:pointer;font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;';
   enable.hidden = true;
   document.body.append(enable);
   function update() {

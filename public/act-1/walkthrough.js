@@ -60,7 +60,7 @@ const question=document.createElement('p');question.id='intro-question';question
 question.innerHTML='<span class="line">'+'How did you know Exhib?'.split(' ').map(w=>`<span aria-hidden="true">${w}</span>`).join(' ')+'</span>';
 (host.body||document.body).append(question);
 const questionWords=[...question.firstChild.children];
-const QUESTION={start:.8,step:.32,ink:.85,holdUntil:6.4,fadeOut:1.6};
+const QUESTION={start:.25,step:.12,ink:.45,holdUntil:6.4,fadeOut:1.6};   // words in within about a second, then held until the same moment as before
 function updateQuestion(t){   // t: seconds into the story
  const on=introChoice==='text'&&t<QUESTION.holdUntil+QUESTION.fadeOut;
  question.hidden=!on;if(!on)return;

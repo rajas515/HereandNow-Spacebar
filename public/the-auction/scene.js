@@ -1,4 +1,4 @@
-// The Auction (chapter 07), ported from the "New Auction 3D Composition" transfer
+// The Estate Sale (chapter 07), ported from the "New Auction 3D Composition" transfer
 // (Auction Composition.html). Seven objects from the studio, pre-printed in riso ink
 // (assets/item-*.webp, from the transfer's Composition PNGs), float in a CSS 3D composition.
 // Objects rest see-through; hovering brings one to full colour (a pixel-exact hit mask per object, from the transfer); clicking it
@@ -299,6 +299,6 @@ try {
   stage.dataset.state = 'ready';
 } catch (error) {
   console.error(error);
-  status.textContent = 'The auction could not load. Reload to try again.';
+  status.textContent = 'The estate sale could not load. Reload to try again.';
 }
 }
