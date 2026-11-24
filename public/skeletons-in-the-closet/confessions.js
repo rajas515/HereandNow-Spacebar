@@ -114,6 +114,9 @@ export function createConfessions(host, stage) {
   Object.assign(bubble.style, {left: '0', top: '0'});
   let last = '';
   return {
+    // In the exhibition the bubble waits for the section's Confess call to action.
+    show() { bubble.style.display = ''; },
+    hide() { bubble.style.display = 'none'; },
     // x, y: the room-corner marker on the stage; h: stage height; s: the Adjust panel's Position values.
     pin(x, y, h, s = {}) {
       const bx = s.bubbleX ?? PIN.bubble.x, by = s.bubbleY ?? PIN.bubble.y, size = s.bubbleSize ?? 1;

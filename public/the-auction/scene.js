@@ -222,11 +222,14 @@ try {
     return [plane, {plane, ox, oy, width, height, mask: atob(encoded), w: parseFloat(css.width), h: parseFloat(css.height)}];
   }));
   let highlighted = null;
+  // In the exhibition: tell the world when an object is under the pointer, for its Bid cursor.
+  const bridge = host.world ? host.installMapBridge({}) : null;
   function select(plane) {
     if (plane === highlighted) return;
     highlighted?.classList.remove('highlight');
     highlighted = plane;
     highlighted?.classList.add('highlight');
+    bridge?.hover?.(!!plane);
   }
   function hits(target, x, y) {
     const {plane, ox, oy, width, height, mask, w, h} = target;

@@ -26,7 +26,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-25-merge2';
+const ASSET_VERSION = '2026-11-25t';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 
@@ -50,7 +50,7 @@ const nodes = [
     : `<div class="placeholder"><span class="ph-num">${n.n}</span><strong>${n.title}</strong>${n.tone ? `<span class="ph-tone">${n.tone}</span>` : ''}<em>Module in progress</em></div>`;
   world.append(el);
   return {...n, titleQuad: saved.titleQuad ?? n.titleQuad, textAt: saved.textAt ?? n.textAt,
-    reportsHover: !!n.enter, overScene: false,   // a card with its own enter command reports where its scene is (mapBridge.hover)
+    reportsHover: !!(n.enter || n.hoverCta) && !n.ctaAnywhere, overScene: false,   // a card with its own enter command reports where its scene is (mapBridge.hover)
     x: (saved.x ?? n.x) / 100, y: (saved.y ?? n.y) / 100, size: saved.scale ?? n.scale ?? stack.scale ?? 1, rotation: n.rotation ?? stack.rotation ?? 0,
     el, frame: null, adapter: null, loading: false, viewKey: '', qualityKey: '', transformKey: ''};
 });
@@ -281,7 +281,9 @@ function focus(i, instant = false) {   // centre a chapter at zoom 1
   if (act1 && active === 0 && !arranging) { enterAct1(story.progress); if (instant) pan = {...target}; return; }
   if (inAct1) leaveAct1();
   overview = false;
-  target = {z: 1, x: -nodes[active].x * U, y: -nodes[active].y * H};
+  // Centre the chapter's focus point (chapters.js `focusAt`, a fraction of its card box), or the box's centre.
+  const n = nodes[active], [fx, fy] = n.focusAt || [.5, .5];
+  target = {z: 1, x: -n.x * U - (fx - .5) * n.size * U, y: -n.y * H - (fy - .5) * n.size * H};
   bound();
   if (instant) pan = {...target};
   updateHud(); wake();
@@ -358,7 +360,10 @@ async function mount(n) {
         adapter.command?.({command: 'motion', paused: reducedMotion});
         wake();
         // hover(over): the pointer is over the card's scene itself (not its backdrop); Enter applies only there.
-        return {state() {}, focus: () => focus(nodes.indexOf(n)), hover: over => { n.reportsHover = true; n.overScene = !!over; syncCursor(); }};
+        // state('room'): the card is back in its room after Exit (its intro may return).
+        return {state: v => { if (v === 'room' && n.returningUntil) { n.returningUntil = 0; updateSection(nodes[active]); wake(); } }, focus: () => focus(nodes.indexOf(n)), hover: over => { n.reportsHover = true; n.overScene = !!over; syncCursor(); },
+          // anchor(x, y, h): a point in the card's room (stage px), which its intro follows (chapters.js anchorAt).
+          anchor: (x, y) => { n.anchor = [x / Math.max(1, n.frame.offsetWidth), y / Math.max(1, n.el.offsetHeight)]; if (introNode === n) placeIntro(n); }};
       },
     };
     const module = await import(new URL(`${n.script || 'scene.js'}?v=${ASSET_VERSION}`, base));
@@ -431,7 +436,7 @@ addEventListener('pointermove', e => {
 }, true);
 function endPress(e) {
   if (!press) return;
-  if (!press.moved && !arranging && overScene() && e.type === 'pointerup' && e.pointerType === 'mouse') {
+  if (!press.moved && !arranging && overScene() && sectionShown.enter && e.type === 'pointerup' && e.pointerType === 'mouse') {
     e.stopPropagation(); swallowClick = true; setTimeout(() => swallowClick = false);
     press = null; enterSection(); return;
   }
@@ -487,12 +492,18 @@ const FILE_HEADER = `// Single source of truth for the exhibition world (arrange
 // script: its scene module if not scene.js.
 // heading (title lines), blurb and enter (the card's own zoom-in command) give a chapter its
 // section intro, added one card at a time; titleQuad / textAt anchor its title (four corners)
-// and description on the card, set in ?arrange.
+// and description on the card, set in ?arrange; titleQuad may instead list one quad per heading
+// word, each fitted on its own (Skeletons in the Closet).
+// focusAt: the point of the card box the camera centres on when arriving (default its centre).
+// cta: the Enter cursor's label; hoverCta: the label only follows what the card points at, and the
+// click stays the card's own (The Estate Sale: Bid); ctaAnywhere: the label works over the whole card. anchorAt: where the card's room point was when the title was placed;
+// the intro follows that point as the room moves inside its card (Skeletons).
+// mapOffset nudges a chapter's name in the map view only (fractions of the map's width / height).
 // To rearrange visually, open /exhibition/?arrange, drag and Alt+scroll the cards, then
 // "Copy layout" and paste the result over this file.
 `;
 function chaptersFile() {   // the current arrangement as a complete chapters.js
-  const quote = v => typeof v === 'string' ? `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'` : Array.isArray(v) ? `[${v.map(quote).join(', ')}]`
+  const quote = v => typeof v === 'string' ? `'${v.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')}'` : Array.isArray(v) ? `[${v.map(quote).join(', ')}]`
     : v && typeof v === 'object' ? `{${Object.entries(v).map(([k, x]) => `${k}: ${quote(x)}`).join(', ')}}` : v;
   const field = (k, v) => `${k}: ${quote(v)}`;
   const fields = ch => Object.entries(ch).filter(([k]) => !['x', 'y', 'scale', 'titleQuad', 'textAt'].includes(k)).map(([k, v]) => field(k, v));
@@ -622,7 +633,7 @@ addEventListener('keydown', e => {
 let sectionShown = null, introNode = null;   // introNode: the card the intro last belonged to
 // The intro is part of the card: it shows whenever the card is mostly in view (and moves with
 // it, since it is anchored to it), until the visitor enters or the card leaves the screen.
-const sectionReady = n => hasIntro(n) && !n.entered && !inAct1 && !overview && !arranging && onScreen(cardRect(n)) > .55;
+const sectionReady = n => hasIntro(n) && !n.entered && !(n.returningUntil > performance.now()) && !inAct1 && !overview && !arranging && onScreen(cardRect(n)) > .55;
 function updateSection(n) {
   if (n.entered === 'zoom' && target.z <= 1.001) n.entered = false;   // zoomed back out: offer it again
   const show = arranging ? (selected && hasIntro(selected) ? selected : null) : sectionReady(n) ? n : null;
@@ -630,8 +641,14 @@ function updateSection(n) {
   if (introNode) placeIntro(introNode);   // follows its card always, also while fading out
   if (show === sectionShown) return;
   if (show) {
-    $('#sec-title').innerHTML = (show.heading || [show.title]).map(line => `<span>${line}</span>`).join('');
-    $('#sec-text').textContent = show.blurb || '';
+    secTitle.innerHTML = (show.heading || [show.title]).map(line => `<span>${line}</span>`).join('');
+    secTitle.classList.toggle('pieces', splitTitle(show));
+    document.body.classList.toggle('split-title', splitTitle(show));
+    document.body.classList.toggle('no-enter', !show.enter && !show.hoverCta);
+    document.body.classList.toggle('no-blurb', !show.blurb);
+    secText.textContent = show.blurb || '';
+    $('#sec-enter').textContent = show.cta || 'Enter';
+    ensureHandles(quadsOf(show).length);
   }
   sectionShown = show;
   document.body.classList.toggle('show-section', !!show);
@@ -640,7 +657,17 @@ function updateSection(n) {
 }
 // The title is drawn in perspective between its four anchors (a CSS projective transform
 // from its own box to the quad); the description sits at its anchor. Both follow the card.
-const secTitle = $('#sec-title'), secText = $('#sec-text'), handles = [...document.querySelectorAll('.intro-handle')];
+const secTitle = $('#sec-title'), secText = $('#sec-text'), handleLayer = $('.hud-section'), handles = [];
+// A title is one block between four anchors, or (titleQuad as a list of quads) one word per quad,
+// each fitted to its own surface, like Skeletons in the Closet's.
+const splitTitle = n => Array.isArray(n.titleQuad?.[0]?.[0]);
+const quadsOf = n => splitTitle(n) ? n.titleQuad : [n.titleQuad];
+function ensureHandles(count) {   // four corner handles per quad, then the description's square
+  const want = count * 4 + 1;
+  while (handles.length < want) { const h = document.createElement('i'); h.className = 'intro-handle'; handleLayer.append(h); handles.push(h); }
+  while (handles.length > want) handles.pop().remove();
+  handles.forEach((h, i) => { h.dataset.i = i; h.classList.toggle('text', i === want - 1); h.title = i === want - 1 ? 'Description' : `Title ${Math.floor(i / 4) + 1}, corner ${i % 4 + 1}`; });
+}
 const cardRect = n => screenRect(n, {...pan, x: pan.x + OX}, U, H);
 const at = (r, [fx, fy]) => [r.left + fx * r.width, r.top + fy * r.height];
 function quadMatrix(w, h, q) {   // maps (0,0) (w,0) (w,h) (0,h) onto q
@@ -650,39 +677,71 @@ function quadMatrix(w, h, q) {   // maps (0,0) (w,0) (w,h) (0,h) onto q
   const a = x1 - x0 + g * x1, b = x3 - x0 + k * x3, d = y1 - y0 + g * y1, e = y3 - y0 + k * y3;
   return `matrix3d(${a / w},${d / w},0,${g / w},${b / h},${e / h},0,${k / h},0,0,1,0,${x0},${y0},0,1)`;
 }
+const roomShift = n => n.anchorAt && n.anchor ? [n.anchor[0] - n.anchorAt[0], n.anchor[1] - n.anchorAt[1]] : [0, 0];
 let introKey = '';
 function placeIntro(n) {
-  const r = cardRect(n), quad = n.titleQuad.map(p => at(r, p)), text = at(r, n.textAt);
-  const key = JSON.stringify([quad, text, pan.z, secTitle.textContent]);
+  // A chapter with anchorAt follows a point in its room (reported by the card): everything shifts by
+  // however far that point has moved from where it was when the title was placed.
+  const [sx, sy] = roomShift(n), r = cardRect(n), shifted = ([x, y]) => at(r, [x + sx, y + sy]);
+  const quads = quadsOf(n).map(q => q.map(shifted)), text = shifted(n.textAt);
+  const key = JSON.stringify([quads, text, pan.z, secTitle.textContent]);
   if (key === introKey) return; introKey = key;
-  secTitle.style.transform = quadMatrix(secTitle.offsetWidth || 1, secTitle.offsetHeight || 1, quad);
+  if (splitTitle(n)) {
+    secTitle.style.transform = 'none';
+    [...secTitle.children].forEach((word, i) => { if (quads[i]) word.style.transform = quadMatrix(word.offsetWidth || 1, word.offsetHeight || 1, quads[i]); });
+  } else secTitle.style.transform = quadMatrix(secTitle.offsetWidth || 1, secTitle.offsetHeight || 1, quads[0]);
   secText.style.left = text[0] + 'px'; secText.style.top = text[1] + 'px'; secText.style.transform = `scale(${pan.z})`;
-  [...quad, text].forEach(([x, y], i) => { handles[i].style.left = x + 'px'; handles[i].style.top = y + 'px'; });   // shown as marks, dragged in ?arrange
+  [...quads.flat(), text].forEach(([x, y], i) => { if (handles[i]) { handles[i].style.left = x + 'px'; handles[i].style.top = y + 'px'; } });   // shown as marks, dragged in ?arrange
 }
 document.fonts?.ready.then(() => { introKey = ''; if (sectionShown) placeIntro(sectionShown); });
 // Arrange mode: drag the handles onto the wall's corners (and where the description goes).
-handles.forEach((h, i) => h.addEventListener('pointerdown', e => {
-  const n = sectionShown;
-  if (!n || !arranging) return;
+handleLayer.addEventListener('pointerdown', e => {
+  const h = e.target.closest?.('.intro-handle'), n = sectionShown;
+  if (!h || !n || !arranging) return;
+  const i = +h.dataset.i, quadCount = quadsOf(n).length;
   e.preventDefault(); e.stopPropagation(); h.setPointerCapture(e.pointerId);
   const move = ev => {
-    const r = cardRect(n), p = [+((ev.clientX - r.left) / r.width).toFixed(4), +((ev.clientY - r.top) / r.height).toFixed(4)];
-    if (i < 4) n.titleQuad = n.titleQuad.map((q, j) => j === i ? p : q); else n.textAt = p;
+    const r = cardRect(n), [sx, sy] = roomShift(n), p = [+((ev.clientX - r.left) / r.width - sx).toFixed(4), +((ev.clientY - r.top) / r.height - sy).toFixed(4)];
+    if (i < quadCount * 4) {
+      const quads = quadsOf(n).map(q => q.slice());
+      quads[Math.floor(i / 4)][i % 4] = p;
+      n.titleQuad = splitTitle(n) ? quads : quads[0];
+    } else n.textAt = p;
     introKey = ''; placeIntro(n); saveLayout();
   };
   h.addEventListener('pointermove', move);
   h.addEventListener('pointerup', () => h.removeEventListener('pointermove', move), {once: true});
-}));
-function leaveSection(n) {   // moving on resets a chapter that was entered
-  if (n.entered && n.enter) n.adapter?.command?.({command: 'wide'});
+});
+function leaveSection(n) {   // moving on (or Exit) resets a chapter that was entered
+  if (n.entered && n.enter) {
+    n.adapter?.command?.({command: 'wide'});
+    // The intro waits for the card's way back to its room: until it reports state('room'), or a moment.
+    const hold = n.exitHold || 2600;   // disco and In the Life Of zoom back out over 2.6 s
+    n.returningUntil = performance.now() + hold;
+    setTimeout(() => { updateSection(nodes[active]); wake(); }, hold + 30);
+  }
   n.entered = false;
+  if (enteredNode === n) { enteredNode = null; document.body.classList.remove('entered'); }
 }
+// Exit: step back out of the chapter you entered (its zoom, its confession card) to its intro.
+let enteredNode = null;
+function exitSection() {
+  const n = enteredNode;
+  if (!n) return;
+  const zoomed = n.entered === 'zoom';
+  leaveSection(n);
+  if (zoomed) zoomTo(1, W / 2, H / 2);
+  updateSection(n); wake();
+}
+$('#sec-exit').onclick = exitSection;
+addEventListener('keydown', e => { if (e.key === 'Escape' && enteredNode && !mapOpen) exitSection(); });
 function enterSection() {
   const n = sectionShown;
   if (!n) return;
   if (n.distance > 2) focus(nodes.indexOf(n));
   if (n.enter && n.adapter) { n.entered = true; n.adapter.command?.({command: n.enter}); }
   else { n.entered = 'zoom'; zoomTo(ZOOM.max, W / 2, H / 2); }
+  enteredNode = n; document.body.classList.add('entered');
   updateSection(n); wake();
 }
 $('#sec-enter').onclick = enterSection;
@@ -708,8 +767,10 @@ addEventListener('pointermove', e => {
 }, {passive: true});
 document.documentElement.addEventListener('pointerleave', () => { document.body.classList.remove('cursor-in'); syncCursor(); });
 // Enter shows (and a click enters) only over the chapter's scene; its backdrop and the paper
-// around it are for panning. A card that does not report hover counts as all scene.
-const overScene = () => !!sectionShown && !dragging && document.body.classList.contains('cursor-in') && (!sectionShown.reportsHover || sectionShown.overScene);
+// around it are for panning. A card that does not report hover counts as all scene; a chapter
+// without an `enter` command has no Enter, unless it has `hoverCta`: then the label (cta) shows over
+// what the card reports, and the click goes to the card itself (The Estate Sale's Bid).
+const overScene = () => !!(sectionShown?.enter || sectionShown?.hoverCta) && !dragging && document.body.classList.contains('cursor-in') && (!sectionShown.reportsHover || sectionShown.overScene);
 let cursorFrame = null;
 function syncCursor() {
   const on = overScene();
@@ -810,7 +871,7 @@ function animate(now) {
     if (warming) moving = true;   // keep frames coming until the warm-up ends
     const state = {localPanX: +local.x.toFixed(2), localPanY: +local.y.toFixed(2),
       offsetX: Math.round((r.cx - OX - U * pan.z / 2) / pan.z), offsetY: Math.round((r.cy - H * pan.z / 2) / pan.z),
-      presence: +onScreen(r).toFixed(2), visible, dragging, overview, scale: +pan.z.toFixed(2)};
+      presence: +onScreen(r).toFixed(2), visible, dragging, overview, scale: +pan.z.toFixed(2), cardScale: +(n.size * pan.z).toFixed(3)};
     const key = JSON.stringify(state);
     if (n.viewKey !== key) { n.adapter.viewport?.(state); n.viewKey = key; }
   }

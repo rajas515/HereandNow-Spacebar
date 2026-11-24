@@ -1,9 +1,23 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Will — Green hour</title>
-<style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,400;0,800;1,400&display=swap"><style>
 *{box-sizing:border-box}body{margin:0;background:#1a1d4a;color:#e5d1ea;font:13px system-ui,sans-serif}header,main{width:min(1120px,94vw,max(510px,calc((100svh - 152px) * 1.55)));margin:auto}header{padding:14px 0}a{color:inherit}h1{font:clamp(32px,5vw,64px) Georgia;margin:0}#stage{position:relative;aspect-ratio:1.55}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}canvas:active{cursor:grabbing}footer{display:flex;justify-content:space-between;align-items:center;padding:8px 0 24px}button{color:inherit;background:transparent;border:1px solid #8176a1;border-radius:20px;padding:7px 14px}#status{position:absolute;inset:45% 0 auto;text-align:center;pointer-events:none}
 #reader{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:#1a1d4a;padding:4px;border-radius:24px}#reader[hidden]{display:none}.pillars{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 /* Embedded (exhibition world or map): the stage fills the frame, page chrome hidden. */
 .map-embedded body{background:transparent;overflow:hidden}.map-embedded header,.map-embedded h1,.map-embedded footer,.map-embedded .pillars{display:none}.map-embedded main{width:100vw;height:100vh}.map-embedded #stage{aspect-ratio:auto;height:100%}
-</style><script>if(parent!==window)document.documentElement.classList.add('map-embedded');</script></head><body><header><a href="../">Scene studies</a></header><main><h1>will</h1><div id="stage"><canvas id="scene" tabindex="0" aria-label="Open corner studio. Drag or use arrow keys to pan. Home recenters."></canvas><nav id="reader" aria-label="Pillar reading controls" hidden><button id="prev" aria-label="Previous pillar">←</button><button id="back">Room</button><button id="next" aria-label="Next pillar">→</button></nav><p id="status" role="status">Loading studio…</p></div><footer><span>Select a pillar to read · Drag to look around</span><button id="reset" type="button">Recenter</button></footer><nav class="pillars" aria-label="Choose a pillar"></nav></main><script type="module">import {mount} from './scene.js';import {pageHost} from '../shared/card-host.js';mount(pageHost());</script></body></html>
+
+/* Reading controls in the exhibition's look: sharp, Mulish caps; Next is the pink call to action.
+   In the exhibition only Next shows (its own Exit returns to the room). */
+#reader{inset:0;z-index:5;transform:none;display:block;border-radius:0;background:none;padding:0;pointer-events:none}
+#reader[hidden]{display:none}
+#reader button{position:absolute;pointer-events:auto;white-space:nowrap}
+#reader #prev{transform:translate(-100%,-50%);transform-origin:100% 50%}
+#reader #next{transform:translate(0,-50%);transform-origin:0 50%}
+#reader #back{left:50%;top:auto;bottom:18px;transform:translateX(-50%)}
+#reader button{border:1.5px solid #fff;border-radius:0;background:#1a1d4aeb;color:#fff;font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;cursor:pointer}
+#reader button:hover{color:#ff9ccf;border-color:#ff9ccf}
+#reader #next{background:#d901b4;border-color:#d901b4;color:#fff}
+#reader #next:hover{background:#ff2fcf;border-color:#ff2fcf;color:#fff}
+.in-exhibition #back{display:none}   /* the exhibition's Exit returns to the room */
+</style><script>if(parent!==window)document.documentElement.classList.add('map-embedded');</script></head><body><header><a href="../">Scene studies</a></header><main><h1>will</h1><div id="stage"><canvas id="scene" tabindex="0" aria-label="Open corner studio. Drag or use arrow keys to pan. Home recenters."></canvas><nav id="reader" aria-label="Pillar reading controls" hidden><button id="prev" aria-label="Previous part">Back</button><button id="back">Room</button><button id="next" aria-label="Next part">Next</button></nav><p id="status" role="status">Loading studio…</p></div><footer><span>Select a pillar to read · Drag to look around</span><button id="reset" type="button">Recenter</button></footer><nav class="pillars" aria-label="Choose a pillar"></nav></main><script type="module">import {mount} from './scene.js';import {pageHost} from '../shared/card-host.js';mount(pageHost());</script></body></html>
 

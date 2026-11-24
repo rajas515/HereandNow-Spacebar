@@ -7,7 +7,7 @@ import {addAccent} from '../shared/accent.js';
 import {installComposition} from '../shared/cutout/composition.js';
 import {createStageClipping} from '../shared/cutout/stage-clipping.js';
 import {addAtmosphere} from '../shared/cutout/atmosphere.js';
-import {roomCutOutline} from './cut-outline.js';
+import {roomCutOutline,outlinePoint,CORNER_TRACE} from './cut-outline.js';
 import {createWindowBackgrounds} from './windows.js';
 import {createDaylight} from './daylight.js';
 import {createMannequinInset} from './mannequin-inset.js';
@@ -26,6 +26,13 @@ const $=s=>host.$(s),canvas=$('#scene'),stage=$('#stage'),embedded=host.embedded
 // Blue accent shard behind the room (shared/accent.js, disco's backing), traced from the exhibition comp.
 addAccent(host,stage,[[-.2723,.1067],[.4765,.0085],[.9591,.5368],[.068,1.1144]],canvas);
 if(embedded)host.documentElement.classList.add('map-embedded');
+// In the exhibition: tell the world where the room is (its pinned corner, which the title follows)
+// and whether the pointer is over the room itself (where its Confess call to action applies).
+const ROOM=roomCutOutline(),REST_CORNER=outlinePoint(CORNER_TRACE);let roomShift=[0,0],overRoom=null;
+function followRoom(x,y,h){roomShift=[x/Math.max(1,stage.clientWidth)-REST_CORNER[0],y/Math.max(1,h)-REST_CORNER[1]];mapBridge?.anchor?.(x,y,h);}
+function insideRoom(u,v){let inside=false;for(let i=0,j=ROOM.length-1;i<ROOM.length;j=i++){const [xi,yi]=ROOM[i],[xj,yj]=ROOM[j];if((yi>v)!==(yj>v)&&u<(xj-xi)*(v-yi)/(yj-yi)+xi)inside=!inside;}return inside;}
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),over=insideRoom((e.clientX-r.left)/r.width-roomShift[0],(e.clientY-r.top)/r.height-roomShift[1]);if(over!==overRoom){overRoom=over;mapBridge?.hover?.(over);}},{passive:true});
+canvas.addEventListener('pointerleave',()=>{if(overRoom!==false){overRoom=false;mapBridge?.hover?.(false);}});
 const KEY='green-hour-skeletons-in-the-closet-v1';
 const defaults={mode:'print',riso:.7,sketch:.5,exposure:1.3,lens:.68,width:1.12,quality:'balanced',floorLight:-.35,roomLight:0,objectLight:-.15,windowLight:-.35,floorWarmth:-.15,roomWarmth:0,objectWarmth:.08,windowWarmth:-.1,
  // Zoom card (mannequin inset) and confession card, placed from the room-corner marker in stage-height units.
@@ -107,9 +114,9 @@ async function init(){try{
  const anchor=camera.clone();anchor.clearViewOffset();anchor.fov=camera.fov;anchor.updateProjectionMatrix();clipping.setAnchor(anchor);
  renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;
  await renderer.compileAsync(scene,camera);await renderer.compileAsync(pass.scene,pass.camera);
- mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer,(x,y,h)=>confessions?.pin(x,y,h,settings));
+ mannequinInset=createMannequinInset(scene,pass,stage,camera,clipping,host.createRenderer,(x,y,h)=>{confessions?.pin(x,y,h,settings);followRoom(x,y,h);});
  // Confess to unlock a confession: a speech bubble from the mannequin inset (confessions.js).
- confessions=createConfessions(host,stage);
+ confessions=createConfessions(host,stage);if(embedded)confessions.hide();   // shown by the exhibition's Confess
  loaded=true;$('#loading').hidden=true;dirty=true;wake();
 }catch(error){console.error(error);$('#loading').hidden=true;$('#error').hidden=false;canvas.dataset.state='error';}}
 for(const mode of ['print','material'])$('#'+mode).onclick=()=>{settings.mode=mode;persist();configure();};
@@ -128,6 +135,6 @@ function recenter(){pan.set(0,0);dirty=true;wake();}canvas.addEventListener('dbl
 canvas.addEventListener('keydown',e=>{const moves={ArrowLeft:[-.2,0],ArrowRight:[.2,0],ArrowUp:[0,-.2],ArrowDown:[0,.2]};if(moves[e.code]){e.preventDefault();pan.add(new THREE.Vector2(...moves[e.code]));pan.clampScalar(-5,5);dirty=true;wake();}if(e.code==='Home'){e.preventDefault();recenter();}});
 new ResizeObserver(resize).observe(stage);new IntersectionObserver(([e])=>{visible=e.isIntersecting;dirty=true;wake();}).observe(stage);
 document.addEventListener('visibilitychange',()=>{last=0;dirty=true;wake();});
-mapBridge=host.installMapBridge({viewport:m=>{visible=m.visible!==false;mapViewportState=m;dirty=true;wake();},palette:m=>{mapPrint=m.print||{};configure();dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};mapColor=m.layout?.['skeletons-in-the-closet']?.stack?.color||{};configure();resize();},dragEnd:()=>{down=null;},command:m=>{if(m.command==='motion'){paused=!!m.paused;motion();}if(m.command==='wide')recenter();dirty=true;wake();}});
+mapBridge=host.installMapBridge({viewport:m=>{visible=m.visible!==false;mapViewportState=m;dirty=true;wake();},palette:m=>{mapPrint=m.print||{};configure();dirty=true;wake();},layout:m=>{quality={...quality,...m.quality};mapColor=m.layout?.['skeletons-in-the-closet']?.stack?.color||{};configure();resize();},dragEnd:()=>{down=null;},command:m=>{if(m.command==='motion'){paused=!!m.paused;motion();}if(m.command==='wide'){recenter();if(embedded)confessions?.hide();}if(m.command==='confess')confessions?.show();dirty=true;wake();}});
 await init();
 }

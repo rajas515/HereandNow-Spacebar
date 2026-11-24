@@ -70,6 +70,12 @@ kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-r
 @keyframes hint-bob{50%{transform:translateY(4px)}}
 @media (prefers-reduced-motion:reduce){.hud-hint span{animation:none}}
 
+/* Exit: shown while inside a chapter (after Enter / Confess), in ENTER's sharp style. */
+.hud-exit{top:20px;right:22px;display:flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid #fff;border-radius:0;background:#1a1d4aeb;color:#fff;cursor:pointer;
+  font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity .35s}
+.hud-exit:hover{color:var(--pink);border-color:var(--pink)}
+.entered .hud-exit{opacity:1;pointer-events:auto}
+
 /* Dev phase: skip the self-playing opening. */
 .hud-skip{right:22px;bottom:22px;padding:9px 14px;border:1.5px solid #fff;border-radius:0;background:#1a1d4aeb;color:#fff;font:800 11px Mulish,Arial,sans-serif;letter-spacing:.08em;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .4s}
 .hud-skip:hover{color:var(--pink)}
@@ -84,14 +90,20 @@ kbd{font:600 10px Mulish,Arial,sans-serif;border:1px solid currentColor;border-r
 #sec-title{position:absolute;left:0;top:0;margin:0;text-align:right;white-space:nowrap;transform-origin:0 0;
   font:900 96px/.9 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:.02em}
 #sec-title span{display:block}
-#sec-text{position:absolute;transform-origin:0 0;width:min(38.5vh,calc(100% - 32px));margin:0;font:500 max(13px,1.75vh)/1.4 Mulish,Arial,sans-serif}
+/* A split title: each word its own element, fitted to its own quad. */
+#sec-title.pieces{outline:0}
+#sec-title.pieces span{position:absolute;left:0;top:0;transform-origin:0 0}
+#sec-text{position:absolute;transform-origin:0 0;white-space:pre-line;width:min(38.5vh,calc(100% - 32px));margin:0;font:500 max(13px,1.75vh)/1.4 Mulish,Arial,sans-serif}
 /* Anchor marks: the title's corner points and dashed frame, and the description's square, are
    part of the look (they fade with the intro). In ?arrange the points are handles to drag. */
 .intro-handle{position:absolute;width:14px;height:14px;margin:-8px;border:2px solid var(--pink);border-radius:50%;background:#1a1d4acc;pointer-events:none}
 .intro-handle.text{border-radius:0}
 .arranging .intro-handle{pointer-events:auto;cursor:move}
-#sec-title{outline:3px dashed #ff9ccfaa}
-.arranging #sec-enter{display:none}
+.split-title:not(.arranging) .intro-handle:not(.text){display:none}
+.no-blurb .intro-handle.text{display:none}   /* a title without a description (The Will) */   /* a split title shows no corner marks */
+#sec-title:not(.pieces){outline:3px dashed #ff9ccfaa}
+.arranging #sec-title.pieces span{outline:2px dashed #ff9ccfaa}
+.arranging #sec-enter,.no-enter #sec-enter{display:none}
 /* Enter: a button where the comp puts it on touch screens; with a mouse it is the cursor itself. */
 #sec-enter{position:absolute;left:calc(50% + 16vh);top:77.3vh;pointer-events:auto;cursor:pointer;padding:.45vh 1.1vh;border:1.5px solid #fff;border-radius:0;background:transparent;color:#fff;
   font:800 max(12px,1.75vh)/1.2 Mulish,Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
