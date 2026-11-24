@@ -1,3 +1,4 @@
+import {PIN} from './mannequin-inset.js';
 // Skeletons in the closet: confess to unlock a confession.
 // A speech bubble under the mannequin inset, its tail pointing up into the frame (the reference
 // bubble's silhouette, mirrored and turned over), styled like the auction's Estate Sale card: flat,
@@ -22,7 +23,6 @@ const KEY = 'skeletons-confessions-v2';
 // tail rising from its top edge.
 const VIEW = {width: 760, height: 370};
 const SHAPE = [[34, 96], [166, 89], [124, 12], [262, 84], [694, 74], [744, 252], [702, 338], [338, 326], [330, 354], [62, 344], [12, 214]];
-const TAIL = {x: 124 / VIEW.width, y: 12 / VIEW.height};
 // Everything inside lines up on one inner grid: text from x 78, the band's corners below.
 const INNER = {left: 80, right: 640, top: 118};
 // The band sits ~30–40 units inside the outline all round; its right end runs parallel to the bubble's
@@ -49,7 +49,7 @@ const B = box(BUTTON);
 const pts = list => list.map(p => p.join(',')).join(' ');
 const esc = text => text.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 
-export function createConfessions(host, stage, inset) {
+export function createConfessions(host, stage) {
   let state = {order: null, at: 0};
   try { state = {...state, ...JSON.parse(localStorage.getItem(KEY) || '{}')}; } catch {}
   if (!Array.isArray(state.order) || state.order.length !== SEED.length) {
@@ -108,24 +108,18 @@ export function createConfessions(host, stage, inset) {
   }
   ask();
 
-  // ---- placement: under the inset, tail into it; sized by the stage's height ----
-  // The inset is raised just enough for the bubble to sit below it inside the card (the exhibition
-  // clips a card to its frame, so it cannot hang outside).
-  function place() {
-    const W = stage.clientWidth, H = stage.clientHeight;
-    if (!W || !H) return;
-    const width = Math.min(W * .34, H * .5), height = width * VIEW.height / VIEW.width;
-    const insetCentre = W * (-.03 + .29 / 2);   // the inset's centre without its pan (CSS: left -3%, width 29%)
-    const bottom = H * .02;
-    bubble.style.width = width + 'px';
-    bubble.style.left = Math.max(W * .01, insetCentre - width * TAIL.x) + 'px';   // whole bubble inside the card
-    bubble.style.bottom = bottom + 'px';
-    inset.style.bottom = bottom + height * (1 - TAIL.y) - height * .12 + 'px';   // the tail tucks under its lower edge
-  }
-  new ResizeObserver(place).observe(stage);
-  place();
+  // ---- placement: pinned with the inset to the room corner (mannequin-inset.js, PIN) ----
+  // The bubble sits under the inset, its tail tucked into the inset's lower edge; both are placed in
+  // stage-height units from the corner's projected point each frame.
+  Object.assign(bubble.style, {left: '0', top: '0'});
+  let last = '';
   return {
-    // Follow the mannequin inset as the room pans (the same translate the inset gets).
-    follow(transform) { if (bubble.style.transform !== transform) bubble.style.transform = transform; },
+    pin(x, y, h) {
+      const key = `${x.toFixed(1)},${y.toFixed(1)},${h}`;
+      if (key === last) return;
+      last = key;
+      bubble.style.width = PIN.bubble.width * h + 'px';
+      bubble.style.transform = `translate(${x + PIN.bubble.x * h}px,${y + PIN.bubble.y * h}px)`;
+    },
   };
 }

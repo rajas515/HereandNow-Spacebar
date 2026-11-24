@@ -1,7 +1,13 @@
 import * as THREE from '../shared/vendor/three.module.js';
 import {PrintPass} from '../shared/print-pass.js';
 import {installComposition} from '../shared/cutout/composition.js';
-export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,createRenderer=options=>new THREE.WebGLRenderer(options)){
+import {CORNER_TRACE,outlinePoint} from './cut-outline.js';
+// The inset (and the confession bubble under it) are pinned to a room corner: each frame its point is
+// projected through the current camera and lens, and the pair keep the layout measured on the card's
+// own page relative to it, in stage-height units. Panning, the exhibition's wider frame and its world
+// pan all leave them on that corner.
+export const PIN={inset:{x:-.245,y:-.648,width:.412,height:.47},bubble:{x:-.118,y:-.214,width:.483}};
+export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,createRenderer=options=>new THREE.WebGLRenderer(options),onPin=()=>{}){
  const canvas=document.createElement('canvas');canvas.id='mannequin-inset';canvas.setAttribute('aria-label','Detail view of the mannequin through the studio window');stage.append(canvas);
  const renderer=createRenderer({canvas,antialias:true,alpha:true,powerPreference:'low-power'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.localClippingEnabled=true;
  const pass=new PrintPass(renderer);installComposition(pass);pass.normalMaterials=mainPass.normalMaterials;
@@ -9,6 +15,13 @@ export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,cr
  const anchor=new THREE.Vector3(-2.7,.7,1.6);
  function screenPoint(cam,settings,point=anchor){const p=point.clone().project(cam);const aspect=mainCamera.aspect;let x=p.x*.5*aspect,y=p.y*.5;const radius=Math.hypot(x,y);let r=radius;const strength=Number(settings.lens);for(let i=0;i<6;i++)r=radius*(1.+strength*.16)/(1.+strength*r*r);const ratio=radius>0?r/radius:1;return new THREE.Vector2(x*ratio/aspect*Number(settings.width),-y*ratio);}
  const camera=new THREE.PerspectiveCamera(19,1,.06,35);const size=new THREE.Vector2();
+ // The room corner the inset and bubble are pinned to: the outline's lower-left point, traced from
+ // the outline's own camera (the authored 1.42 composition) onto the floor.
+ let corner=null;
+ function findCorner(){const cam=restCamera.clone();cam.aspect=1.42;cam.fov=mainCamera.fov;cam.updateProjectionMatrix();cam.updateMatrixWorld(true);
+  const [u,v]=outlinePoint(CORNER_TRACE),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(u*2-1,1-v*2),cam);
+  // On the room's near cut face (world z = 3.2, the stage clipping bound), where the silhouette's corner is.
+  const p=new THREE.Vector3();return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,0,-1),3.2),p)?p:anchor.clone();}
  return {render(pan,pointer,time,settings){
  const r=canvas.getBoundingClientRect();const w=Math.max(1,Math.round(r.width)),h=Math.max(1,Math.round(r.height));renderer.getSize(size);if(size.x!==w||size.y!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();pass.resize();}
  // Fixed portrait target; only millimetric viewpoint changes for depth.
@@ -19,7 +32,12 @@ export function createMannequinInset(scene,mainPass,stage,mainCamera,clipping,cr
  pass.uniforms.uLensStrength.value=.12;pass.uniforms.uCardStretch.value=1;
  restCamera.aspect=mainCamera.aspect;restCamera.fov=mainCamera.fov;restCamera.updateProjectionMatrix();mainCamera.updateMatrixWorld(true);
  const delta=screenPoint(mainCamera,settings).sub(screenPoint(restCamera,settings)),bounds=stage.getBoundingClientRect();
- canvas.style.transform=`translate(${delta.x*bounds.width+pointer.x*.5-10}px,${delta.y*bounds.height+pointer.y*.5}px)`;
+ corner??=findCorner();void delta,bounds;
+ const W=stage.clientWidth,H=stage.clientHeight,at=screenPoint(mainCamera,settings,corner);
+ const cx=W/2+at.x*W+pointer.x*.5,cy=H/2+at.y*H+pointer.y*.5;
+ Object.assign(canvas.style,{left:'0',top:'0',bottom:'auto',width:PIN.inset.width*H+'px',height:PIN.inset.height*H+'px'});
+ canvas.style.transform=`translate(${cx+PIN.inset.x*H}px,${cy+PIN.inset.y*H}px)`;
+ onPin(cx,cy,H);
  // Keep the authored card open at every pan offset.
  const open=1,corners=[[0,6],[68,0],[100,95],[23,100]];
  const points=[],phase=Math.floor(time*8);

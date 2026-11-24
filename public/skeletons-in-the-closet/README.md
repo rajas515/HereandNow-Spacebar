@@ -74,3 +74,8 @@ card to its frame), and the bubble follows the inset as the room pans. The visit
 and "Submit another one"; the buttons are cut to the dark band's slanted edges. No backend: what
 visitors type is not kept; the six seeded confessions (`SEED`) cycle in a shuffled order whose place is
 remembered in the browser (`skeletons-confessions-v2`). Sized by the stage height.
+Pinning: the inset and the bubble are pinned to the room's near-left corner (the cut outline's
+lower-left point, `CORNER_TRACE` in cut-outline.js, traced onto the near cut face at z = 3.2). Each
+frame that point is projected through the current camera, pan and lens, and the pair keep the layout
+of the card's own page relative to it in stage-height units (`PIN` in mannequin-inset.js), so they stay
+on that corner when panning, in the wider exhibition frame and under its world pan.
