@@ -31,6 +31,9 @@ html.map-embedded,html.map-embedded body{background:transparent!important}html.m
 #where-now.is-live .wn-list,#where-now.is-live .wn-card{pointer-events:auto}
 .wn-list{position:absolute;right:calc(var(--u)*.4);top:calc(var(--u)*5.2);width:calc(var(--u)*19);display:flex;flex-direction:column;gap:calc(var(--u)*.6);transform:perspective(calc(var(--u)*150)) rotateY(24deg);transform-origin:100% 50%}
 /* The list lies in the room's perspective: its right edge, against the room, is the far one, so the top and bottom edges run on into the left wall's lines. */
+#where-now .wn-exit{position:absolute;right:0;bottom:100%;margin-bottom:calc(var(--u)*1.2);height:calc(var(--u)*4);padding:0 calc(var(--u)*1.6);background:transparent;border:calc(var(--u)*.3) solid var(--wn-pink);color:var(--wn-pink);font-size:calc(var(--u)*1.9)!important;font-weight:800!important;letter-spacing:.06em;text-transform:uppercase}
+#where-now .wn-exit:hover{background:var(--wn-pink);color:var(--wn-navy)}
+#where-now .wn-exit span{font-weight:400}
 .wn-batch{display:flex;flex-direction:column;gap:calc(var(--u)*.6)}
 .wn-tab{width:100%;height:calc(var(--u)*4.9);padding:0;background:var(--wn-lilac);font-size:calc(var(--u)*2.5)!important;font-weight:500!important;text-align:center}
 .wn-tab:hover{background:var(--wn-pink)}
@@ -42,8 +45,9 @@ html.map-embedded,html.map-embedded body{background:transparent!important}html.m
 /* Names are laid down one frame apart at the room's 24 fps; the card is cut open from the list's edge. */
 @keyframes wn-in{from{visibility:hidden}to{visibility:visible}}
 @keyframes wn-cut{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes wn-uncut{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 100% 0 0)}}
 .wn-card{position:absolute;left:calc(var(--u)*.4);top:0;width:calc(var(--u)*60);height:calc(var(--u)*66);animation:wn-cut .38s steps(9,end) both}
-.wn-card.is-closing{animation:wn-cut .3s steps(7,end) reverse both}
+.wn-card.is-closing{animation:wn-uncut .3s steps(7,end) both}
 .wn-card[hidden]{display:none}
 .wn-edge{position:absolute;inset:0;background:var(--wn-magenta);clip-path:polygon(0 8.5%,100% 0,87% 96%,5% 100%)}
 .wn-paper{position:absolute;inset:calc(var(--u)*.6);background:var(--wn-pink);clip-path:polygon(0 8.5%,100% 0,87% 96%,5% 100%)}

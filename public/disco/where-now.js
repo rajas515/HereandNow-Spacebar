@@ -20,19 +20,27 @@ const ROOM_SPAN = 37.4;  // units from the room's top left corner down to the ba
 const esc = text => String(text).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const hash = text => [...text].reduce((sum, c) => (sum * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-export function createWhereNow(host, stage) {
+export function createWhereNow(host, stage, onExit = () => {}) {
   const root = document.createElement('section');
   root.id = 'where-now';
   root.setAttribute('aria-label', 'Where are they now: people by batch');
   root.innerHTML = '<nav class="wn-list" aria-label="Batches"></nav><article class="wn-card" aria-live="polite" hidden></article>';
+  // Exit: back to the wide room. It sits on top of the list, in the list's perspective.
+  const exit = document.createElement('button');
+  exit.type = 'button';
+  exit.className = 'wn-exit';
+  exit.setAttribute('aria-label', 'Exit Where Are They Now');
+  exit.innerHTML = '<span aria-hidden="true">←</span> Exit';
+  exit.addEventListener('click', () => { openBatch = null; openPerson = null; renderList(); renderCard(); onExit(); });
   stage.append(root);
   const list = root.querySelector('.wn-list'), card = root.querySelector('.wn-card');
+  list.append(exit);
   // Clicks, drags and scrolling here belong to the list and card, not to the room's pan or zoom.
   for (const part of [list, card]) {
     for (const type of ['pointerdown', 'pointermove', 'pointerup', 'click', 'dblclick', 'wheel', 'touchstart']) part.addEventListener(type, e => e.stopPropagation());
   }
 
-  let batches = [], openBatch = null, openPerson = null;
+  let batches = [], openBatch = null, openPerson = null, closing = 0;
 
   function portrait(person) {
     if (person.photo) return `<span class="wn-photo"><img src="${esc(url('./' + person.photo))}" alt="Portrait of ${esc(person.name)}"></span>`;
@@ -41,11 +49,13 @@ export function createWhereNow(host, stage) {
   }
 
   function renderList() {
-    list.innerHTML = batches.map(batch => {
+    list.replaceChildren();
+    list.insertAdjacentHTML('beforeend', batches.map(batch => {
       const open = batch.id === openBatch;
       const names = open ? `<ul>${batch.people.map((person, i) => `<li><button type="button" class="wn-name${openPerson === person ? ' is-open' : ''}" data-person="${i}" style="--i:${i}" aria-pressed="${openPerson === person}">${esc(person.name)}</button></li>`).join('')}</ul>` : '';
       return `<div class="wn-batch${open ? ' is-open' : ''}"><button type="button" class="wn-tab" data-batch="${batch.id}" aria-expanded="${open}">${batch.id}</button>${names}</div>`;
-    }).join('');
+    }).join(''));
+    list.prepend(exit);
   }
 
   function renderCard() {
@@ -54,11 +64,14 @@ export function createWhereNow(host, stage) {
       if (card.hidden) return;
       // Cut shut the way it was cut open.
       card.classList.add('is-closing');
-      card.addEventListener('animationend', () => { if (!openPerson) { card.hidden = true; card.innerHTML = ''; } card.classList.remove('is-closing'); }, {once: true});
+      // By the clock, not animationend: a background tab may never play the animation.
+      clearTimeout(closing);
+      closing = setTimeout(() => { if (!openPerson) { card.hidden = true; card.innerHTML = ''; } card.classList.remove('is-closing'); }, 300);
       return;
     }
     const person = openPerson;
     const fields = person.fields.map(([label, text]) => `<p>${label ? `<b>${esc(label)}:</b> ` : ''}${esc(text)}</p>`).join('');
+    clearTimeout(closing);
     card.classList.remove('is-closing');
     card.hidden = false;
     card.innerHTML = `<div class="wn-edge"><div class="wn-paper"><div class="wn-copy">

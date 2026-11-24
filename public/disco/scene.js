@@ -445,7 +445,7 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();const unit=e.deltaMode===
 window.addEventListener('resize',()=>{renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(host.innerWidth,host.innerHeight);printPass.resize();camera.aspect=host.innerWidth/host.innerHeight;cameraPose();});
 document.addEventListener('visibilitychange',()=>{last=performance.now();});
 let last=performance.now();
-const labelProjected=new THREE.Vector3();const whereNow=createWhereNow(host,$('#experience'));const roomCorner=new THREE.Vector3(-3.8,4.15,-2);let perfStart=performance.now(),perfFrames=0;
+const labelProjected=new THREE.Vector3();const whereNow=createWhereNow(host,$('#experience'),()=>setView(false));const roomCorner=new THREE.Vector3(-3.8,4.15,-2);let perfStart=performance.now(),perfFrames=0;
 function animate(now){
   requestAnimationFrame(animate);
   if(document.hidden||(MAP_EMBEDDED&&!mapViewport.visible)){last=now;perfStart=now;perfFrames=0;return;}

@@ -26,7 +26,7 @@ const arranging = new URLSearchParams(location.search).has('arrange');
 const PALETTE = {print: MAP_PRESET.print, grades: MAP_PRESET.grades};
 // Bump when card code changes: the world imports card pages and scripts on demand, and a
 // browser could otherwise reuse an old copy of one.
-const ASSET_VERSION = '2026-11-25-wherenow7';
+const ASSET_VERSION = '2026-11-25-wherenow8';
 const MOUNT_WATCHDOG = 30000;   // ms before a slow card stops holding up the others
 const gl = createWorldGL($('#gl'));
 
@@ -358,7 +358,8 @@ async function mount(n) {
         adapter.command?.({command: 'motion', paused: reducedMotion});
         wake();
         // hover(over): the pointer is over the card's scene itself (not its backdrop); Enter applies only there.
-        return {state() {}, focus: () => focus(nodes.indexOf(n)), hover: over => { n.reportsHover = true; n.overScene = !!over; syncCursor(); }};
+        // state(v): the card's own view; back to wide (its Exit, Escape) offers Enter again.
+        return {state(v) { if (!v && n.entered === true) { n.entered = false; updateSection(n); wake(); } }, focus: () => focus(nodes.indexOf(n)), hover: over => { n.reportsHover = true; n.overScene = !!over; syncCursor(); }};
       },
     };
     const module = await import(new URL(`${n.script || 'scene.js'}?v=${ASSET_VERSION}`, base));
